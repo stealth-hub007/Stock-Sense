@@ -203,7 +203,7 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
       {/* Right Controls: Panel Switcher & Operator Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ss-space-4)' }}>
 {/* Full Interactive Panel Switcher - Only on Manager/Admin Dashboards */}
-        {!isStaff && !isStaffPanel && (
+        {!isStaff && (
           <div
             style={{
               display: 'flex',
@@ -281,25 +281,27 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               </button>
 
               {/* Admin Panel */}
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.hash = '#/admin';
-                }}
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: isAdminPanel ? 'var(--ss-warning)' : 'transparent',
-                  color: isAdminPanel ? '#000000' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Admin
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.hash = '#/admin';
+                  }}
+                  style={{
+                    padding: '0.25rem 0.6rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderRadius: 'var(--ss-radius-xs)',
+                    border: 'none',
+                    background: isAdminPanel ? 'var(--ss-warning)' : 'transparent',
+                    color: isAdminPanel ? '#000000' : 'var(--ss-text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  Admin
+                </button>
+              )}
             </div>
           </div>
         )}

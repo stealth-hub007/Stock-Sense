@@ -97,6 +97,86 @@ export const WarehousePage = () => {
     setSelectedBin(null);
   };
 
+  // CRUD: Add Facility Zone
+  const handleCreateZone = (e) => {
+    e.preventDefault();
+    const newZone = {
+      id: `zone-${Date.now().toString().slice(-4)}`,
+      code: newZoneCode.toUpperCase() || `ZONE-${String.fromCharCode(65 + zones.length)}`,
+      name: newZoneName || 'Additional Staging Bay',
+      aisles: newZoneAisles,
+      temp: newZoneTemp,
+      capacity: newZoneCapacity,
+      occupancy: 0,
+      primaryItems: newZoneItems,
+    };
+    const updatedZones = [...zones, newZone];
+    setZones(updatedZones);
+    setSelectedZone(newZone);
+    setBins(GENERATE_BINS(newZone.id));
+    setIsAddZoneModalOpen(false);
+    setNewZoneCode('');
+    setNewZoneName('');
+    showToast(`✓ New storage facility ${newZone.name} created and saved to localStorage!`);
+  };
+
+  // CRUD: Delete Facility Zone
+  const handleDeleteZone = (zoneToDelete, e) => {
+    e.stopPropagation();
+    if (zones.length <= 1) {
+      showToast('Cannot delete the last remaining warehouse zone.');
+      return;
+    }
+    if (window.confirm(`Delete zone ${zoneToDelete.name}? Bins and racks will be removed.`)) {
+      const remaining = zones.filter((z) => z.id !== zoneToDelete.id);
+      setZones(remaining);
+      if (selectedZone.id === zoneToDelete.id) {
+        setSelectedZone(remaining[0]);
+        setBins(GENERATE_BINS(remaining[0].id));
+      }
+      showToast(`🗑 Zone ${zoneToDelete.name} deleted.`);
+    }
+  };
+
+  // CRUD: Allocate / Reassign Bin
+  const handleSaveBinAllocation = (e) => {
+    e.preventDefault();
+    if (!selectedBin) return;
+
+    const prod = products.find((p) => p.sku === allocSku) || products[0];
+    const qty = parseInt(allocQty, 10) || 0;
+
+    const updatedBins = bins.map((b) =>
+      b.id === selectedBin.id
+        ? {
+            ...b,
+            sku: allocStatus === 'VACANT' ? null : prod.sku,
+            name: allocStatus === 'VACANT' ? 'Vacant Bin' : prod.name,
+            qty: allocStatus === 'VACANT' ? 0 : qty,
+            status: allocStatus,
+          }
+        : b
+    );
+
+    setBins(updatedBins);
+    setSelectedBin(updatedBins.find((b) => b.id === selectedBin.id));
+    setIsAllocateBinModalOpen(false);
+    showToast(`✓ Bin ${selectedBin.id} allocation updated to ${allocStatus}!`);
+  };
+
+  // CRUD: Vacate Bin
+  const handleVacateBin = () => {
+    if (!selectedBin) return;
+    const updatedBins = bins.map((b) =>
+      b.id === selectedBin.id
+        ? { ...b, sku: null, name: 'Vacant Bin', qty: 0, status: 'VACANT' }
+        : b
+    );
+    setBins(updatedBins);
+    setSelectedBin(updatedBins.find((b) => b.id === selectedBin.id));
+    showToast(`✓ Bin ${selectedBin.id} vacated and cleared.`);
+  };
+
   const filteredBins = bins.filter((b) => {
     const matchesFilter =
       binFilter === 'ALL' ||
@@ -112,6 +192,37 @@ export const WarehousePage = () => {
 
   return (
     <div style={{ padding: 'var(--ss-space-6)', maxWidth: '1680px', margin: '0 auto', width: '100%' }}>
+      {/* Toast */}
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 100,
+            background: 'var(--ss-bg-surface-elevated)',
+            border: '1px solid var(--ss-primary)',
+            borderRadius: 'var(--ss-radius-md)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--ss-shadow-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: 'var(--ss-text-primary)',
+          }}
+        >
+          <span style={{ color: 'var(--ss-primary)', fontSize: '1.25rem' }}>🏗️</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--ss-primary)' }}>
+              Warehouse Layout Updated
+            </div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+              {toastMessage}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -129,7 +240,7 @@ export const WarehousePage = () => {
               Facility Digital Twin & Warehouse Layout
             </h1>
             <span className="ss-badge ss-badge-info">WH-01: MAIN DC (BAY AREA)</span>
-            <span className="ss-badge ss-badge-success">● 3 AGVs IN-TRANSIT</span>
+            <span className="ss-badge ss-badge-success">PERSISTED LOCALSTORAGE</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             140,000 sq ft facility cadastre. Interactive rack & bin locator, volumetric occupancy heatmaps, and dock gates.
@@ -149,6 +260,13 @@ export const WarehousePage = () => {
           >
             IoT Sensor Hub: <strong style={{ color: 'var(--ss-success-text)' }}>20.4°C Nominal • 44% RH</strong>
           </div>
+          <button
+            type="button"
+            className="ss-btn ss-btn-primary"
+            onClick={() => setIsAddZoneModalOpen(true)}
+          >
+            + Add Facility Zone
+          </button>
         </div>
       </div>
 
@@ -585,7 +703,30 @@ export const WarehousePage = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="ss-btn ss-btn-primary"
+                onClick={() => {
+                  setAllocSku(selectedBin.sku || products[0]?.sku || 'MTR-9002');
+                  setAllocQty(selectedBin.qty || 20);
+                  setAllocStatus(selectedBin.status === 'VACANT' ? 'OCCUPIED' : selectedBin.status);
+                  setIsAllocateBinModalOpen(true);
+                }}
+                style={{ fontSize: '0.75rem' }}
+              >
+                ✎ Allocate / Reassign SKU
+              </button>
+              {selectedBin.status !== 'VACANT' && (
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={handleVacateBin}
+                  style={{ fontSize: '0.75rem', color: 'var(--ss-danger)' }}
+                >
+                  Vacate Bin
+                </button>
+              )}
               <button
                 type="button"
                 className="ss-btn ss-btn-secondary"
@@ -668,13 +809,282 @@ export const WarehousePage = () => {
                 </div>
               </div>
 
-              <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)' }}>
-                Primary Items: <strong style={{ color: 'var(--ss-text-primary)' }}>{zone.primaryItems}</strong>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)' }}>
+                  Primary Items: <strong style={{ color: 'var(--ss-text-primary)' }}>{zone.primaryItems}</strong>
+                </div>
+                {zones.length > 1 && (
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-ghost"
+                    onClick={(e) => handleDeleteZone(zone, e)}
+                    title="Delete Zone"
+                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.4rem', color: 'var(--ss-danger)' }}
+                  >
+                    🗑
+                  </button>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Add Facility Zone Modal */}
+      {isAddZoneModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Add Facility Storage Zone
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Define a new warehouse storage sector (Saves to localStorage).
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setIsAddZoneModalOpen(false)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateZone} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Zone Code
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    placeholder="e.g. ZONE-E"
+                    value={newZoneCode}
+                    onChange={(e) => setNewZoneCode(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Zone Name
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    placeholder="e.g. Cold Chain Staging"
+                    value={newZoneName}
+                    onChange={(e) => setNewZoneName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Aisles Span
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={newZoneAisles}
+                    onChange={(e) => setNewZoneAisles(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Climate / Temp
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={newZoneTemp}
+                    onChange={(e) => setNewZoneTemp(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Capacity
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={newZoneCapacity}
+                    onChange={(e) => setNewZoneCapacity(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Primary SKU Types
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={newZoneItems}
+                    onChange={(e) => setNewZoneItems(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setIsAddZoneModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save Zone
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Allocate / Reassign Bin Modal */}
+      {isAllocateBinModalOpen && selectedBin && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Allocate / Reassign Bin {selectedBin.id}
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Aisle: {selectedBin.aisle} • Level: {selectedBin.level}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setIsAllocateBinModalOpen(false)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBinAllocation} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Product SKU to Allocate
+                </label>
+                <select
+                  className="ss-select"
+                  value={allocSku}
+                  onChange={(e) => setAllocSku(e.target.value)}
+                >
+                  {products.map((p) => (
+                    <option key={p.sku} value={p.sku}>
+                      {p.sku} — {p.name} ({p.onHand} units on-hand)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Allocated Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={selectedBin.maxQty || 100}
+                    className="ss-input"
+                    value={allocQty}
+                    onChange={(e) => setAllocQty(parseInt(e.target.value, 10) || 0)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Bin Status
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={allocStatus}
+                    onChange={(e) => setAllocStatus(e.target.value)}
+                  >
+                    <option value="OCCUPIED">OCCUPIED</option>
+                    <option value="LOW">LOW</option>
+                    <option value="RESERVED">RESERVED</option>
+                    <option value="VACANT">VACANT</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setIsAllocateBinModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save Bin Allocation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

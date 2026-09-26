@@ -241,6 +241,16 @@ export const AuthPage = ({ onLoginSuccess }) => {
       
       toast$(`Welcome back, ${sessionUser.name}!`, 'success');
       setLoading(false);
+      
+      // Update the hash so the router displays the correct initial panel
+      if (sessionUser.role === ROLES.ADMIN) {
+        window.location.hash = '#/admin';
+      } else if (sessionUser.role === ROLES.INVENTORY_MANAGER) {
+        window.location.hash = '#/manager';
+      } else {
+        window.location.hash = '#/staff';
+      }
+      
       doSession(sessionUser);
     } catch (error) {
       console.error(error);

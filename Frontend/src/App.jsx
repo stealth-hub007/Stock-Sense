@@ -225,13 +225,6 @@ function RootApp() {
 const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
   const { user, isAuthenticated, activePanel, role } = useAuth();
 
-  // Show Login / Register when not authenticated
-  if (!isAuthenticated || !user) {
-    return <AuthPage />;
-  }
-
-  const userRole = user?.assignedRole || user?.role || role;
-
   // Listen for URL changes
   useEffect(() => {
     const handleUrlChange = () => setCurrentPanel(getPanelFromUrl());
@@ -242,6 +235,13 @@ const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
+
+  // Show Login / Register when not authenticated
+  if (!isAuthenticated || !user) {
+    return <AuthPage />;
+  }
+
+  const userRole = user?.assignedRole || user?.role || role;
 
   // Security Enforcement: Staff are locked to the Staff Floor
   if (userRole === ROLES.WAREHOUSE_STAFF) {
@@ -255,7 +255,7 @@ const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
     return <StaffPanel />;
   }
 
-  if (currentPanel === 'admin' || (activePanel === 'admin' && userRole === ROLES.ADMIN)) {
+  if (currentPanel === 'admin' && userRole === ROLES.ADMIN) {
     return <AdminPanel />;
   }
 

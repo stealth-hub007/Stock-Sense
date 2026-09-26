@@ -1,183 +1,61 @@
-# StockSense Architecture
+# StockSense — Enterprise WMS
 
-Welcome to the **StockSense** Inventory Management System! This document outlines the high-level system architecture, core concepts, components, and data flows that power StockSense.
+StockSense is an advanced, full-stack Enterprise Warehouse Management System designed to handle real-time inventory control, multi-warehouse management, and role-based access.
 
----
+## Features & Architecture
 
-## 🏗 System Architecture Overview
+* **Frontend:** React + Vite, built with modern JavaScript and vanilla CSS to ensure high performance and an extremely polished, premium user interface. It utilizes a state-based internal router tailored specifically for Role-Based Access Control (RBAC).
+* **Backend:** FastAPI (Python) providing a highly concurrent, asynchronous RESTful API.
+* **Database:** PostgreSQL accessed asynchronously via SQLAlchemy, ensuring data consistency and reliability across operations.
+* **Role-Based Access Control (RBAC):** Three distinct layers of access:
+  * **Admin:** Full system configuration, user approval, and global visibility.
+  * **Inventory Manager:** Multi-warehouse control, ledger visibility, and approval workflows.
+  * **Warehouse Staff:** Restricted solely to the operational "Staff Floor" for immediate tasks (Receipts, Deliveries, Transfers, Adjustments).
 
-StockSense is designed with a clear separation of concerns, moving from user interactions on the frontend down to the database, with a robust Inventory Engine at its core.
+## How We Solved the Challenges
+During development, we faced challenges merging divergent frontend codebases (a fully-fledged staff UI vs a newly developed admin dashboard). We successfully:
+1. **Resolved Complex Merge Conflicts:** Using targeted regex scripts and manual AST-level fixes, we merged the `Frontend` branch into the main workflow without breaking the React Router state or duplicate UI components.
+2. **Unified Data State:** Removed hardcoded mock data and replaced it with a live `InventoryContext` and `AuthContext` that talks directly to our PostgreSQL database via our FastAPI backend.
+3. **Secured the App:** Implemented a backend authentication route and securely restricted "Staff" level users from accessing administrative or managerial panels.
 
-```text
-                    ┌───────────────────┐
-                    │       USERS       │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │     FRONTEND      │
-                    │   (Web App/UI)    │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │    REST API       │
-                    └─────────┬─────────┘
-                              │
-                              ▼
-              ┌───────────────────────────────┐
-              │        BUSINESS LOGIC         │
-              └───────────────┬───────────────┘
-                              │
-                              ▼
-              ┌───────────────────────────────┐
-              │      INVENTORY ENGINE         │
-              │     (Single Source of Truth)  │
-              └───────────────┬───────────────┘
-                              │
-                              ▼
-                    ┌───────────────────┐
-                    │    PostgreSQL     │
-                    └───────────────────┘
+## Setup & Running Locally
+
+### 1. Backend Setup
+Navigate to the `backend` directory, create a virtual environment, install dependencies, and start the FastAPI server:
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+*The backend will run on `http://localhost:8000`*
+
+### 2. Database Seeding
+To initialize the system with the proper roles and test credentials, run the seed script:
+```bash
+cd backend
+source venv/bin/activate
+python3 seed_auth.py
 ```
 
----
-
-## 🧩 Key Components
-
-### 1. Frontend / UI
-The user interface provides a comprehensive web application for different user roles (Inventory Manager, Warehouse Staff, Admin). 
-* **Authentication**: Login, Signup, OTP Password Reset
-* **Dashboard**: Total Stock, Low/Out of Stock, Pending Receipts, Pending Deliveries, Scheduled Internal Transfers
-* **Products**: Product CRUD, SKU/Code, Category, Unit of Measure, Reorder Rules
-* **Operations**: Receipts, Delivery Orders, Internal Transfers, Inventory Adjustments, Move History
-* **Warehouse & Locations**: Warehouses, Locations / Racks / Bins
-* **Reports & Alerts**: Low Stock Alerts, Stock Reports, Movement Reports
-* **Profile / Settings**
-
-### 2. Backend / REST API (Business Logic)
-The backend exposes RESTful services to handle the business operations:
-* **Authentication Service**: Role & Permission Management, OTP
-* **Product Service**: Categories, UOM, Reorder Rules
-* **Receipt Service**: Create/Validate receipts, Add Products, Increase Stock
-* **Delivery Service**: Create/Validate deliveries, Pick, Pack, Decrease Stock
-* **Transfer Service**: Move stock between Source & Destination Locations
-* **Adjustment Service**: Physical Count, Compare Stock, Adjust Stock
-* **Warehouse Service**: Warehouse and Location Management
-* **Dashboard Service**: KPI Calculation, Stock Summary
-* **Notification Service**: Low Stock / Reorder Alerts
-
-### 3. Inventory Core (Single Source of Truth)
-At the heart of StockSense lies the **Stock Ledger**. It guarantees that all stock calculations are accurate, consistent, and traceable.
-
-```text
-  ┌──────────────────┐     ┌────────────────────┐
-  │ Stock Balance    │     │ Stock Availability │
-  │                  │     │                    │
-  │ Product          │     │ Available Stock    │
-  │ Warehouse        │     │ Reserved Stock     │
-  │ Location         │     │ Reorder Level      │
-  │ Quantity         │     │ Available to Pick  │
-  └──────────────────┘     └────────────────────┘
+### 3. Frontend Setup
+Navigate to the `Frontend` directory, install NPM dependencies, and start the Vite development server:
+```bash
+cd Frontend
+npm install
+npm run dev -- --port 5174
 ```
+*The frontend will run on `http://localhost:5174`*
 
----
+## Testing Credentials
 
-## 📖 The Stock Ledger Principle
+The database has been seeded with the following user accounts mapped to different dashboard experiences:
 
-**Rule:** Every stock-changing operation **MUST** create a ledger entry. Modules are *not* allowed to modify stock balances directly or calculate their own stock logic.
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Admin** | `admin@stocksense.com` | `admin123` |
+| **Manager** | `manager@stocksense.com` | `manager123` |
+| **Staff** | `staff@stocksense.com` | `staff123` |
 
-```text
-❌ Delivery module directly changes product.stock
-❌ Receipt module maintains its own stock calculation
-❌ Transfer module maintains another stock calculation
-
-✅ Operation (Receipt/Delivery/Transfer)
-      ↓
-   Inventory Service
-      ↓
-   Stock Ledger
-      ↓
-   Stock Balance (Updated)
-```
-
-### Operation Behaviors on the Ledger:
-* **Receipt**: `+ STOCK`
-* **Delivery**: `- STOCK`
-* **Transfer**: `LOCATION CHANGE` (Total stock unchanged)
-* **Adjustment**: `+/- STOCK`
-
----
-
-## 🔄 Core Workflows
-
-### 1. Inbound & Outbound Supply Chain
-```text
-      VENDOR
-        │
-        ▼
-   ┌───────────┐
-   │  RECEIPT  │
-   └─────┬─────┘
-         │ (Validate)
-         ▼
-   ┌───────────┐
-   │  STOCK +  │
-   └─────┬─────┘
-         │
-         ▼
-  ┌─────────────┐
-  │  WAREHOUSE  │
-  │  LOCATION A │
-  └──────┬──────┘
-         │ (Internal Transfer)
-         ▼
-  ┌─────────────┐
-  │  LOCATION B │
-  └──────┬──────┘
-         │ (Delivery)
-         ▼
-  ┌─────────────┐
-  │ DELIVERY    │
-  └──────┬──────┘
-         │ (Validate)
-         ▼
-      STOCK -
-         │
-         ▼
-     CUSTOMER
-```
-
-### 2. Inventory Adjustments
-```text
-   Recorded Stock
-         │
-         ▼
-   Physical Count
-         │
-         ▼
-      Compare
-         │
-         ├──── Same ────────► No adjustment
-         │
-         └──── Different ───► Adjustment
-                                 │
-                                 ▼
-                            Stock Ledger
-```
-
----
-
-## 🗄️ Database (PostgreSQL)
-
-The primary data store is PostgreSQL, housing the following core entities:
-* Users, Roles
-* Products, Categories, UOM
-* Suppliers
-* Warehouses, Locations
-* Receipts, ReceiptItems
-* Deliveries, DeliveryItems
-* Transfers, TransferItems
-* Adjustments, AdjustmentItems
-* **StockBalances**, **StockLedger** (Crucial for the engine)
-* ReorderRules, Notifications, AuditLogs
+Enjoy exploring StockSense!

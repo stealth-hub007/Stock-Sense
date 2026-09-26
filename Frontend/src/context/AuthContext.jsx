@@ -137,8 +137,12 @@ export const AuthProvider = ({ children }) => {
     const fallbackUser = {
       ...DEMO_OPERATORS[0],
       email,
+      name: email.split('@')[0],
+      role: ROLES.INVENTORY_MANAGER,
+      title: 'Inventory Manager',
     };
     setCurrentUser(fallbackUser);
+    localStorage.setItem('stocksense_operator', JSON.stringify(fallbackUser));
     return { success: true, user: fallbackUser };
   };
 
@@ -157,6 +161,7 @@ export const AuthProvider = ({ children }) => {
         can,
         hasRole,
         switchRole,
+        loginAs: (targetRole) => switchRole(targetRole),
         login,
         logout,
         activeWarehouse,

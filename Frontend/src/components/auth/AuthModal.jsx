@@ -237,42 +237,38 @@ export const AuthModal = ({ isOpen, onClose }) => {
         {/* ------------------------------------------------------------- */}
         {authMode === 'LOGIN' && (
           <div>
-            {/* Quick Demo Operator Picker */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Instant Demo Profile Sign In
+            {/* Enterprise Credentials Quick-Fill Banner */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.625rem 0.75rem',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: 'var(--ss-radius-md)',
+                marginBottom: '1rem',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  🛡️ Default Inventory Manager
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+                  sarah.manager@stocksense.io
+                </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
-                {DEMO_OPERATORS.map((op) => (
-                  <button
-                    key={op.id}
-                    type="button"
-                    onClick={() => {
-                      loginAs(op.role);
-                      showNotification(`✓ Switched to ${op.name} (${ROLE_LABELS[op.role]})`);
-                      setTimeout(onClose, 600);
-                    }}
-                    className="ss-card"
-                    style={{
-                      padding: '0.5rem',
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      border: user?.role === op.role ? '1px solid var(--ss-primary)' : '1px solid var(--ss-border)',
-                      backgroundColor: user?.role === op.role ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.9375rem', fontWeight: 800 }}>{op.avatar}</div>
-                    <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-primary)' }}>{op.name}</div>
-                    <div style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>{ROLE_LABELS[op.role].split(' ')[0]}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '1rem 0' }}>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--ss-border)' }} />
-              <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>OR ENTER CREDENTIALS</span>
-              <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--ss-border)' }} />
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginEmail('sarah.manager@stocksense.io');
+                  setLoginPassword('manager123');
+                }}
+                className="ss-btn ss-btn-secondary"
+                style={{ fontSize: '0.6875rem', padding: '0.3rem 0.6rem' }}
+              >
+                Auto-fill
+              </button>
             </div>
 
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
@@ -374,9 +370,7 @@ export const AuthModal = ({ isOpen, onClose }) => {
                 value={signupRole}
                 onChange={(e) => setSignupRole(e.target.value)}
               >
-                <option value={ROLES.INVENTORY_MANAGER}>Inventory Manager (Full Operations & Ledger)</option>
-                <option value={ROLES.WAREHOUSE_STAFF}>Warehouse Staff (Receiving & Relocation)</option>
-                <option value={ROLES.ADMIN}>System Administrator (Security & Settings)</option>
+                <option value={ROLES.INVENTORY_MANAGER}>Inventory Manager (Full Operations & Ledger Authority)</option>
               </select>
             </div>
 

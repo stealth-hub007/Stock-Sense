@@ -5,7 +5,7 @@ import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
 import { AuthModal } from '../auth/AuthModal';
 
 export const Header = ({ onResetData }) => {
-  const { user, role, switchRole, demoOperators } = useAuth();
+  const { user, role, logout } = useAuth();
   const { warehouses, activeWarehouse, setActiveWarehouse } = useInventory();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isWarehouseMenuOpen, setIsWarehouseMenuOpen] = useState(false);
@@ -299,67 +299,81 @@ export const Header = ({ onResetData }) => {
 
         {/* Operator Badge with Interactive Profile Dropdown */}
         <div style={{ position: 'relative' }} ref={profileMenuRef}>
-          <button
-            type="button"
-            onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.625rem',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.25rem 0.5rem',
-              borderRadius: 'var(--ss-radius-md)',
-              transition: 'background 150ms ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ss-bg-surface-hover)')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div
+          {!user ? (
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
+              className="ss-btn ss-btn-primary"
+              style={{ fontSize: '0.8125rem', padding: '0.45rem 0.875rem', gap: '0.375rem' }}
+            >
+              <span>🔐</span>
+              <span>Sign In</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsProfileMenuOpen((prev) => !prev)}
               style={{
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                background: 'var(--ss-bg-surface-elevated)',
-                border: '1px solid var(--ss-border)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 700,
-                fontSize: '0.8125rem',
-                color: 'var(--ss-primary)',
+                gap: '0.625rem',
+                background: isProfileMenuOpen ? 'var(--ss-bg-surface-hover)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.25rem 0.5rem',
+                borderRadius: 'var(--ss-radius-md)',
+                transition: 'background 150ms ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--ss-bg-surface-hover)')}
+              onMouseLeave={(e) => {
+                if (!isProfileMenuOpen) e.currentTarget.style.background = 'transparent';
               }}
             >
-              {user?.avatar || 'SC'}
-            </div>
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: 'var(--ss-text-sm)', fontWeight: 600, color: 'var(--ss-text-primary)' }}>
-                {user?.name || 'Sarah Chen'}
+              <div
+                style={{
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  background: 'var(--ss-bg-surface-elevated)',
+                  border: '1px solid var(--ss-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '0.8125rem',
+                  color: 'var(--ss-primary)',
+                }}
+              >
+                {user?.avatar || 'SC'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    color: badgeStyle.dotColor,
-                    fontWeight: 600,
-                  }}
-                >
-                  {ROLE_LABELS[role] || 'Inventory Manager'}
-                </span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>▾</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 'var(--ss-text-sm)', fontWeight: 600, color: 'var(--ss-text-primary)' }}>
+                  {user?.name || 'Sarah Chen'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: badgeStyle.dotColor,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {ROLE_LABELS[role] || 'Inventory Manager'}
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>▾</span>
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          )}
 
-          {/* Profile & Switch Operator Dropdown */}
-          {isProfileMenuOpen && (
+          {/* Profile & Authentication Dropdown */}
+          {user && isProfileMenuOpen && (
             <div
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: '260px',
+                width: '275px',
                 background: 'var(--ss-bg-surface-elevated)',
                 border: '1px solid var(--ss-border)',
                 borderRadius: 'var(--ss-radius-lg)',
@@ -368,56 +382,93 @@ export const Header = ({ onResetData }) => {
                 zIndex: 100,
               }}
             >
-              <div style={{ paddingBottom: '0.5rem', borderBottom: '1px solid var(--ss-border)', marginBottom: '0.5rem' }}>
-                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--ss-text-primary)' }}>
-                  {user?.name}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)' }}>
-                  {user?.email}
-                </div>
-                <div style={{ fontSize: '0.6875rem', color: 'var(--ss-primary)', fontWeight: 600, marginTop: '2px' }}>
-                  {ROLE_LABELS[role]}
-                </div>
-              </div>
-
-              {/* Role / Operator Quick Switch */}
-              <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '0.35rem' }}>
-                Switch Operator Session:
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                {demoOperators.map((op) => (
-                  <button
-                    key={op.id}
-                    type="button"
-                    onClick={() => {
-                      switchRole(op.role);
-                      setIsProfileMenuOpen(false);
-                    }}
+              {/* Profile Card Header */}
+              <div style={{ paddingBottom: '0.625rem', borderBottom: '1px solid var(--ss-border)', marginBottom: '0.625rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.4rem' }}>
+                  <div
                     style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '50%',
+                      background: 'rgba(59, 130, 246, 0.15)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.4rem 0.5rem',
-                      background: op.role === role ? 'var(--ss-primary-subtle)' : 'transparent',
-                      border: op.role === role ? '1px solid var(--ss-primary-border)' : '1px solid transparent',
-                      borderRadius: 'var(--ss-radius-sm)',
-                      color: op.role === role ? 'var(--ss-text-primary)' : 'var(--ss-text-secondary)',
-                      fontSize: '0.75rem',
-                      cursor: 'pointer',
-                      textAlign: 'left',
+                      justifyContent: 'center',
+                      fontWeight: 800,
+                      fontSize: '0.875rem',
+                      color: 'var(--ss-primary)',
+                      border: '1px solid var(--ss-primary-border)',
+                      flexShrink: 0,
                     }}
                   >
-                    <div>
-                      <div style={{ fontWeight: 600 }}>{op.name}</div>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>{ROLE_LABELS[op.role]}</div>
+                    {user?.avatar || 'SC'}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--ss-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.name || 'Sarah Chen'}
                     </div>
-                    {op.role === role && <span style={{ color: 'var(--ss-primary)', fontWeight: 700 }}>✓</span>}
-                  </button>
-                ))}
+                    <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.email || 'sarah.manager@stocksense.io'}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.35rem' }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      color: 'var(--ss-primary)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      padding: '2px 8px',
+                      borderRadius: '9999px',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                    }}
+                  >
+                    🛡️ {ROLE_LABELS[role] || 'Inventory Manager'}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: 'var(--ss-success)',
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ss-success)', display: 'inline-block' }} />
+                    Active Shift
+                  </span>
+                </div>
               </div>
 
-              <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--ss-border)' }}>
+              {/* Facility Authority Details */}
+              <div
+                style={{
+                  padding: '0.5rem 0.625rem',
+                  background: 'var(--ss-bg-surface)',
+                  borderRadius: 'var(--ss-radius-md)',
+                  border: '1px solid var(--ss-border)',
+                  marginBottom: '0.75rem',
+                }}
+              >
+                <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>
+                  Assigned Authority:
+                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-primary)' }}>
+                  {activeWarehouse?.name || 'WH-01 Main DC (Bay Area)'}
+                </div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>✓</span> Full Stock Control & Ledger Authority
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -425,9 +476,24 @@ export const Header = ({ onResetData }) => {
                     setIsAuthModalOpen(true);
                   }}
                   className="ss-btn ss-btn-primary"
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.45rem', justifyContent: 'center' }}
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.48rem', justifyContent: 'center', gap: '0.375rem', fontWeight: 600 }}
                 >
-                  ⚡ Sign In / Sign Up / OTP Reset
+                  <span>⚡</span>
+                  <span>Sign In / Sign Up / OTP Reset</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    logout();
+                  }}
+                  className="ss-btn ss-btn-ghost"
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.4rem', justifyContent: 'center', color: 'var(--ss-text-muted)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ss-danger)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ss-text-muted)')}
+                >
+                  <span>Sign Out / Lock Session</span>
                 </button>
               </div>
             </div>

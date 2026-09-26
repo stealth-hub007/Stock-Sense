@@ -274,7 +274,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
               Products Master Catalog
             </h1>
             <span className="ss-badge ss-badge-info">INVENTORY MASTER</span>
-            <span className="ss-badge ss-badge-success">● FULL CRUD ENABLED</span>
+            <span className="ss-badge ss-badge-success">● ACTIVE CATALOG</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             Central SKU registry with live multi-bin tracking, unit economics, edit/delete actions, and localStorage persistence.
@@ -442,7 +442,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>AVAILABLE</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>UNIT COST</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>

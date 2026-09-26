@@ -2,21 +2,37 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../context/InventoryContext';
 import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
-import { AuthModal } from '../auth/AuthModal';
-
-export const Header = ({ onResetData }) => {
-  const { user, role, logout } = useAuth();
-  const { warehouses, activeWarehouse, setActiveWarehouse } = useInventory();
+export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => {
+  const { user, role, switchRole } = useAuth();
+  const {
+    warehouses,
+    activeWarehouse,
+    setActiveWarehouse,
+    notifications = [],
+    markNotificationRead,
+    markAllNotificationsRead,
+    dismissNotification,
+    clearAllNotifications,
+    approveAdjustment,
+    rejectAdjustment,
+  } = useInventory();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isWarehouseMenuOpen, setIsWarehouseMenuOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const profileMenuRef = useRef(null);
   const warehouseMenuRef = useRef(null);
+  const notificationMenuRef = useRef(null);
 
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
   const isAdmin = role === ROLES.ADMIN;
+  const isStaff = isStaffPanel || role === ROLES.WAREHOUSE_STAFF;
 
-  // Close profile and warehouse dropdowns on outside click
+  const unreadCount = (notifications || []).filter((n) => !n.read).length;
+  const hasUrgentApproval = (notifications || []).some(
+    (n) => !n.read && n.type === 'DISCREPANCY_APPROVAL' && !n.resolved
+  );
+
+  // Close profile, warehouse, and notification dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
@@ -24,6 +40,9 @@ export const Header = ({ onResetData }) => {
       }
       if (warehouseMenuRef.current && !warehouseMenuRef.current.contains(event.target)) {
         setIsWarehouseMenuOpen(false);
+      }
+      if (notificationMenuRef.current && !notificationMenuRef.current.contains(event.target)) {
+        setIsNotificationMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -175,38 +194,22 @@ export const Header = ({ onResetData }) => {
         </div>
       </div>
 
-      {/* Center: Realtime Telemetry */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--ss-space-4)',
-          fontSize: 'var(--ss-text-xs)',
-          color: 'var(--ss-text-muted)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-          <span style={{ color: 'var(--ss-success)' }}>●</span>
-          <span>Ledger Integrity: <strong style={{ color: 'var(--ss-text-primary)', fontFamily: 'var(--ss-font-mono)' }}>99.98%</strong></span>
-        </div>
-        <span style={{ color: 'var(--ss-border)' }}>|</span>
-        <div>
-          Latency: <strong style={{ color: 'var(--ss-text-primary)', fontFamily: 'var(--ss-font-mono)' }}>14ms</strong>
-        </div>
-      </div>
 
-      {/* Right Controls: Role Switcher (Admin Only) & Operator Profile */}
+
+
+
+      {/* Right Controls: Panel Switcher (Manager/Admin Only) & Operator Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ss-space-4)' }}>
-        {/* Panel Switcher — STRICTLY VISIBLE ONLY FOR ADMIN */}
-        {isAdmin && (
+        {/* Interactive Panel Switcher — STRICTLY HIDDEN ON STAFF FLOOR PANEL */}
+        {!isStaff && (
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.2rem 0.5rem',
-              background: 'rgba(245, 158, 11, 0.1)',
-              border: '1px solid rgba(245, 158, 11, 0.3)',
+              gap: '0.4rem',
+              padding: '0.2rem 0.4rem',
+              background: 'var(--ss-bg-app)',
+              border: '1px solid var(--ss-border)',
               borderRadius: 'var(--ss-radius-md)',
             }}
           >
@@ -214,19 +217,20 @@ export const Header = ({ onResetData }) => {
               style={{
                 fontSize: '0.6875rem',
                 fontWeight: 700,
-                color: 'var(--ss-warning-text)',
+                color: 'var(--ss-text-muted)',
                 letterSpacing: '0.04em',
                 textTransform: 'uppercase',
+                paddingLeft: '0.25rem',
               }}
             >
-              Admin View:
+              Panel:
             </span>
 
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                background: 'var(--ss-bg-app)',
+                background: 'var(--ss-bg-surface)',
                 border: '1px solid var(--ss-border)',
                 borderRadius: 'var(--ss-radius-sm)',
                 padding: '2px',
@@ -234,7 +238,10 @@ export const Header = ({ onResetData }) => {
             >
               <button
                 type="button"
-                onClick={() => switchRole(ROLES.INVENTORY_MANAGER)}
+                onClick={() => {
+                  switchRole(ROLES.INVENTORY_MANAGER);
+                  window.location.hash = '#/manager';
+                }}
                 style={{
                   padding: '0.25rem 0.6rem',
                   fontSize: '0.75rem',
@@ -251,7 +258,10 @@ export const Header = ({ onResetData }) => {
               </button>
               <button
                 type="button"
-                onClick={() => switchRole(ROLES.WAREHOUSE_STAFF)}
+                onClick={() => {
+                  switchRole(ROLES.WAREHOUSE_STAFF);
+                  window.location.hash = '#/staff';
+                }}
                 style={{
                   padding: '0.25rem 0.6rem',
                   fontSize: '0.75rem',
@@ -264,28 +274,298 @@ export const Header = ({ onResetData }) => {
                   transition: 'all 150ms ease',
                 }}
               >
-                Staff
+                Staff Floor
               </button>
-              <button
-                type="button"
-                onClick={() => switchRole(ROLES.ADMIN)}
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: role === ROLES.ADMIN ? 'var(--ss-warning)' : 'transparent',
-                  color: role === ROLES.ADMIN ? '#000000' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Admin
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    switchRole(ROLES.ADMIN);
+                  }}
+                  style={{
+                    padding: '0.25rem 0.6rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderRadius: 'var(--ss-radius-xs)',
+                    border: 'none',
+                    background: role === ROLES.ADMIN ? 'var(--ss-warning)' : 'transparent',
+                    color: role === ROLES.ADMIN ? '#000000' : 'var(--ss-text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  Admin
+                </button>
+              )}
             </div>
           </div>
         )}
+
+        {/* Real-time Notification Bell & Live Approvals Activity Center */}
+        <div style={{ position: 'relative' }} ref={notificationMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsNotificationMenuOpen((prev) => !prev)}
+            title="Notifications & Floor Approvals"
+            style={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '36px',
+              height: '36px',
+              borderRadius: 'var(--ss-radius-md)',
+              border: isNotificationMenuOpen ? '1px solid var(--ss-primary)' : '1px solid var(--ss-border)',
+              background: isNotificationMenuOpen ? 'var(--ss-bg-surface-hover)' : 'var(--ss-bg-app)',
+              cursor: 'pointer',
+              fontSize: '1.05rem',
+              transition: 'all 150ms ease',
+            }}
+          >
+            <span>🔔</span>
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '-4px',
+                  right: '-4px',
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '0 4px',
+                  borderRadius: '9999px',
+                  backgroundColor: hasUrgentApproval ? 'var(--ss-danger)' : 'var(--ss-warning)',
+                  color: '#ffffff',
+                  fontSize: '0.625rem',
+                  fontWeight: 800,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: hasUrgentApproval ? '0 0 10px rgba(239, 68, 68, 0.7)' : '0 0 6px rgba(245, 158, 11, 0.5)',
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notifications Dropdown Drawer */}
+          {isNotificationMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                right: 0,
+                width: '390px',
+                maxHeight: '480px',
+                background: 'var(--ss-bg-surface-elevated)',
+                border: '1px solid var(--ss-border)',
+                borderRadius: 'var(--ss-radius-lg)',
+                boxShadow: 'var(--ss-shadow-xl)',
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 200,
+                overflow: 'hidden',
+              }}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  padding: '0.75rem 1rem',
+                  borderBottom: '1px solid var(--ss-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(255, 255, 255, 0.02)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--ss-text-primary)' }}>
+                    Live Notifications
+                  </span>
+                  {unreadCount > 0 && (
+                    <span
+                      style={{
+                        padding: '1px 6px',
+                        borderRadius: '9999px',
+                        fontSize: '0.6875rem',
+                        fontWeight: 700,
+                        backgroundColor: hasUrgentApproval ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        color: hasUrgentApproval ? 'var(--ss-danger)' : 'var(--ss-warning-text)',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                      }}
+                    >
+                      {unreadCount} new
+                    </span>
+                  )}
+                </div>
+
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllNotificationsRead}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.6875rem',
+                      color: 'var(--ss-primary)',
+                      cursor: 'pointer',
+                      fontWeight: 600,
+                      padding: 0,
+                    }}
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+
+              {/* Notification Items List */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0.5rem' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--ss-text-muted)', fontSize: '0.8125rem' }}>
+                    <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔕</div>
+                    No unread notifications or pending actions.
+                  </div>
+                ) : (
+                  notifications.map((n) => {
+                    const isDiscrepancy = n.type === 'DISCREPANCY_APPROVAL';
+                    const isApproved = n.type === 'DISCREPANCY_APPROVED';
+                    const isRejected = n.type === 'DISCREPANCY_REJECTED';
+
+                    return (
+                      <div
+                        key={n.id}
+                        style={{
+                          padding: '0.75rem',
+                          borderRadius: 'var(--ss-radius-md)',
+                          marginBottom: '0.45rem',
+                          background: n.read ? 'transparent' : 'rgba(59, 130, 246, 0.04)',
+                          border: isDiscrepancy && !n.resolved
+                            ? '1px solid rgba(245, 158, 11, 0.4)'
+                            : n.read
+                            ? '1px solid transparent'
+                            : '1px solid var(--ss-border)',
+                          transition: 'all 150ms ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <span>
+                              {isDiscrepancy ? '⏳' : isApproved ? '✓' : isRejected ? '✕' : 'ℹ️'}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '0.8125rem',
+                                fontWeight: 700,
+                                color: isDiscrepancy ? 'var(--ss-warning-text)' : isApproved ? 'var(--ss-success)' : 'var(--ss-text-primary)',
+                              }}
+                            >
+                              {n.title}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', whiteSpace: 'nowrap' }}>
+                            {n.timestamp}
+                          </span>
+                        </div>
+
+                        <p style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', margin: '0.35rem 0 0.5rem 0', lineHeight: 1.4 }}>
+                          {n.message}
+                        </p>
+
+                        {/* Interactive Approval Bar for Managers */}
+                        {isDiscrepancy && !n.resolved && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border)' }}>
+                            {(!isStaff && (role === ROLES.INVENTORY_MANAGER || isAdmin)) ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    approveAdjustment(n.referenceNumber || n.referenceId, user?.name || 'Sarah Chen (Manager)');
+                                    markNotificationRead(n.id);
+                                  }}
+                                  className="ss-btn ss-btn-primary"
+                                  style={{
+                                    fontSize: '0.6875rem',
+                                    padding: '0.2rem 0.5rem',
+                                    backgroundColor: 'var(--ss-success)',
+                                    borderColor: 'var(--ss-success)',
+                                  }}
+                                >
+                                  ✓ Quick Approve
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    rejectAdjustment(n.referenceNumber || n.referenceId, user?.name || 'Sarah Chen (Manager)');
+                                    markNotificationRead(n.id);
+                                  }}
+                                  className="ss-btn ss-btn-ghost"
+                                  style={{ fontSize: '0.6875rem', padding: '0.2rem 0.4rem', color: 'var(--ss-danger)' }}
+                                >
+                                  ✕ Reject
+                                </button>
+                                {onNavigateTab && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsNotificationMenuOpen(false);
+                                      onNavigateTab('adjustments');
+                                    }}
+                                    className="ss-btn ss-btn-secondary"
+                                    style={{ fontSize: '0.6875rem', padding: '0.2rem 0.5rem', marginLeft: 'auto' }}
+                                  >
+                                    Review in Adjustments
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '0.6875rem', color: 'var(--ss-warning-text)', fontWeight: 600 }}>
+                                🛡️ Designated Reviewer: Sarah Chen (Inventory Lead)
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {n.resolved && (
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--ss-success)', marginTop: '0.25rem', fontWeight: 600 }}>
+                            ✓ Resolved by {n.resolvedBy || 'Manager'}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              {notifications.length > 0 && (
+                <div
+                  style={{
+                    padding: '0.5rem',
+                    borderTop: '1px solid var(--ss-border)',
+                    textAlign: 'center',
+                    background: 'var(--ss-bg-app)',
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={clearAllNotifications}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.6875rem',
+                      color: 'var(--ss-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ss-danger)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ss-text-muted)')}
+                  >
+                    Clear all history
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* 1-Click Demo Reset Button */}
         {onResetData && (
@@ -469,43 +749,10 @@ export const Header = ({ onResetData }) => {
                   <span>✓</span> Full Stock Control & Ledger Authority
                 </div>
               </div>
-
-              {/* Action Buttons */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    setIsAuthModalOpen(true);
-                  }}
-                  className="ss-btn ss-btn-primary"
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.48rem', justifyContent: 'center', gap: '0.375rem', fontWeight: 600 }}
-                >
-                  <span>⚡</span>
-                  <span>Sign In / Sign Up / OTP Reset</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsProfileMenuOpen(false);
-                    logout();
-                  }}
-                  className="ss-btn ss-btn-ghost"
-                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.4rem', justifyContent: 'center', color: 'var(--ss-text-muted)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--ss-danger)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--ss-text-muted)')}
-                >
-                  <span>Sign Out / Lock Session</span>
-                </button>
-              </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Authentication Modal (Login, Signup, OTP Password Reset) */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </header>
   );
 };

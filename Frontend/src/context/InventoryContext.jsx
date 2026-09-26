@@ -25,7 +25,44 @@ const STORAGE_KEYS = {
   SETTINGS: 'stocksense_settings_v1',
   WAREHOUSES: 'stocksense_warehouses_v1',
   SUPPLIERS: 'stocksense_suppliers_v1',
+  NOTIFICATIONS: 'stocksense_notifications_v1',
 };
+
+export const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'notif-01',
+    type: 'DISCREPANCY_APPROVAL',
+    title: 'Discrepancy Approval Required',
+    message: 'Alex Rivera (Staff) recorded a -20 unit variance on Industrial High-Torque Servo Motor 48V (MTR-9002) at Zone C. Manager authorization required to reconcile ledger.',
+    urgency: 'HIGH',
+    timestamp: '15 mins ago',
+    read: false,
+    referenceNumber: 'ADJ-1589',
+    sku: 'MTR-9002',
+    delta: -20,
+    targetRole: 'INVENTORY_MANAGER',
+  },
+  {
+    id: 'notif-02',
+    type: 'INBOUND_ARRIVED',
+    title: 'Inbound PO-2026-088 Staged at Dock 01',
+    message: 'Shipment from Siemens Industrial received. 45 units staged and ready for putaway.',
+    urgency: 'NORMAL',
+    timestamp: '1 hour ago',
+    read: false,
+    targetRole: 'ALL',
+  },
+  {
+    id: 'notif-03',
+    type: 'LOW_STOCK',
+    title: 'Low Stock Safety Alert',
+    message: 'Shielded Drag Chain Cable (CAB-8820) reached 42 units (Reorder threshold: 50).',
+    urgency: 'NORMAL',
+    timestamp: '2 hours ago',
+    read: true,
+    targetRole: 'INVENTORY_MANAGER',
+  },
+];
 
 // Helper to safely load from localStorage with fallback
 const loadFromStorage = (key, fallback) => {
@@ -84,10 +121,48 @@ export const InventoryProvider = ({ children }) => {
     loadFromStorage(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS)
   );
 
+  const [notifications, setNotifications] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
+  );
+
   // Sync state to localStorage whenever modified
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Notifications Helpers
+  const addNotification = (notif) => {
+    const newNotif = {
+      id: notif.id || `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: notif.timestamp || 'Just now',
+      read: false,
+      ...notif,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+    return newNotif;
+  };
+
+  const markNotificationRead = (id) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const dismissNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(ledger));
@@ -138,6 +213,7 @@ export const InventoryProvider = ({ children }) => {
     setAdjustments(INITIAL_ADJUSTMENTS);
     setZones(INITIAL_ZONES);
     setSettings(INITIAL_SETTINGS);
+    setNotifications(INITIAL_NOTIFICATIONS);
   };
 
   // Helper to record immutable ledger entries
@@ -277,7 +353,8 @@ export const InventoryProvider = ({ children }) => {
       targetLocation: receiptData.targetLocation || prod.primaryLocation,
       eta: receiptData.eta || 'Today, Incoming',
       carrier: receiptData.carrier || 'Global Express Freight',
-      status: 'READY_TO_RECEIVE',
+      status: receiptData.status || 'PENDING',
+      createdAt: receiptData.createdAt || 'Just now',
     };
     setReceipts((prev) => [newReceipt, ...prev]);
     return newReceipt;
@@ -907,6 +984,24 @@ export const InventoryProvider = ({ children }) => {
 
     setAdjustments((prev) => [newAdj, ...prev]);
 
+    // If pending approval (submitted by staff), dispatch notification to managers
+    if (isPendingApproval) {
+      addNotification({
+        id: `notif-${Date.now()}`,
+        type: 'DISCREPANCY_APPROVAL',
+        title: `🚨 Discrepancy Approval Required: ${newAdj.adjNumber}`,
+        message: `${newAdj.operator} reported ${newAdj.delta > 0 ? '+' : ''}${newAdj.delta} variance on ${newAdj.productName} (${newAdj.sku}) at ${newAdj.location}. Manager authorization required.`,
+        urgency: 'HIGH',
+        timestamp: 'Just now',
+        read: false,
+        referenceNumber: newAdj.adjNumber,
+        referenceId: newAdj.id,
+        sku: newAdj.sku,
+        delta: newAdj.delta,
+        targetRole: 'INVENTORY_MANAGER',
+      });
+    }
+
     // If immediate approval (Manager), update stock and ledger immediately
     if (!isPendingApproval) {
       setProducts((prev) =>
@@ -972,6 +1067,15 @@ export const InventoryProvider = ({ children }) => {
       )
     );
 
+    // Update linked notification status
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.referenceNumber === adj.adjNumber || n.referenceId === adj.id
+          ? { ...n, read: true, resolved: true, resolvedBy: approverName || 'Sarah Chen (Manager)' }
+          : n
+      )
+    );
+
     // Record ledger entry
     recordLedgerEntry({
       type: 'ADJUSTMENT',
@@ -984,6 +1088,20 @@ export const InventoryProvider = ({ children }) => {
       balanceAfter: newOnHand,
       operator: approverName || 'Sarah Chen (Manager)',
       note: `Manager approved staff count discrepancy: ${adj.reason} (Counted: ${adj.physicalQty}, System: ${adj.systemQty})`,
+    });
+
+    // Notify staff & system
+    addNotification({
+      id: `notif-${Date.now()}`,
+      type: 'DISCREPANCY_APPROVED',
+      title: `✓ Discrepancy ${adj.adjNumber} Approved`,
+      message: `${approverName || 'Sarah Chen (Manager)'} approved ${adj.delta > 0 ? '+' : ''}${adj.delta} variance for ${adj.productName} (${adj.sku}). System on-hand & ledger reconciled.`,
+      urgency: 'NORMAL',
+      timestamp: 'Just now',
+      read: false,
+      referenceNumber: adj.adjNumber,
+      referenceId: adj.id,
+      targetRole: 'ALL',
     });
   };
 
@@ -1002,6 +1120,26 @@ export const InventoryProvider = ({ children }) => {
           : a
       )
     );
+
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.referenceNumber === adjId || n.referenceId === adjId || n.id === adjId
+          ? { ...n, read: true, rejected: true }
+          : n
+      )
+    );
+
+    addNotification({
+      id: `notif-${Date.now()}`,
+      type: 'DISCREPANCY_REJECTED',
+      title: `✕ Discrepancy Rejected: ${adjId}`,
+      message: `${rejectorName || 'Sarah Chen (Manager)'} rejected count adjustment: "${reason || 'Count rejected upon re-verification'}".`,
+      urgency: 'NORMAL',
+      timestamp: 'Just now',
+      read: false,
+      referenceNumber: adjId,
+      targetRole: 'ALL',
+    });
   };
 
   const editAdjustment = (id, updatedData) => {
@@ -1117,6 +1255,13 @@ export const InventoryProvider = ({ children }) => {
 
         suppliers,
         triggerReorderPO,
+
+        notifications,
+        addNotification,
+        markNotificationRead,
+        markAllNotificationsRead,
+        dismissNotification,
+        clearAllNotifications,
 
         metrics,
         resetAllData,

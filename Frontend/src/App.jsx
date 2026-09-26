@@ -1,16 +1,14 @@
-import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { AuthProvider } from './context/AuthContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ROLES } from './constants/roles';
+import { useAuth } from './context/AuthContext';
 
-// Layout & Global Components
+// Layout
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import DemoStepper from './components/layout/DemoStepper';
 import StaffSidebar from './components/layout/StaffSidebar';
-
-// Auth View
-import AuthPage from './pages/auth/AuthPage';
 
 // Manager Pages
 import InventoryManagerDashboard from './pages/dashboard/InventoryManagerDashboard';
@@ -27,6 +25,7 @@ import ReportsPage from './pages/reports/ReportsPage';
 // Warehouse Staff Pages
 import StaffDashboard from './pages/staff/StaffDashboard';
 import StaffTasksPage from './pages/staff/StaffTasksPage';
+import StaffOperationsHubPage from './pages/staff/StaffOperationsHubPage';
 import StaffReceiptsPage from './pages/staff/StaffReceiptsPage';
 import StaffDeliveriesPage from './pages/staff/StaffDeliveriesPage';
 import StaffTransfersPage from './pages/staff/StaffTransfersPage';
@@ -34,11 +33,26 @@ import StaffStockCountPage from './pages/staff/StaffStockCountPage';
 import StaffProfilePage from './pages/staff/StaffProfilePage';
 
 /**
- * Inventory Manager Experience (Governance, Master Catalog, Ledgers & Strategy)
+ * Read which panel is active from the URL path or hash.
+ * /staff or #/staff => 'staff'
+ * /manager or #/manager (or default) => 'manager'
  */
-function MainAppShell() {
+function getPanelFromUrl() {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  if (path.includes('/staff') || hash.includes('staff')) {
+    return 'staff';
+  }
+  return 'manager';
+}
+
+// =========================================================================
+// INVENTORY MANAGER PANEL
+// =========================================================================
+function ManagerPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
+  const { switchRole } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -56,144 +70,98 @@ function MainAppShell() {
     }
   };
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--ss-bg-app)' }}>
-      {/* Global Mission-Control Header */}
-      <Header onResetData={handleResetData} />
+  // Sync role to INVENTORY_MANAGER when this panel is active
+  useEffect(() => {
+    switchRole(ROLES.INVENTORY_MANAGER);
+  }, []);
 
-      {/* Demo Journey Stepper Banner */}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
+      <Header onResetData={handleResetData} isStaffPanel={false} onNavigateTab={setActiveTab} />
       <DemoStepper
         currentStep={getStepNumberForTab(activeTab)}
         onStepClick={(tab) => setActiveTab(tab)}
       />
-
-      {/* Main App Body with Sidebar & Content */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
-
-        <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--ss-bg-app)' }}>
-          {activeTab === 'dashboard' && (
-            <InventoryManagerDashboard onNavigateTab={setActiveTab} />
-          )}
-
-          {activeTab === 'products' && (
-            <ProductsPage onQuickReceive={() => setActiveTab('receipts')} onQuickTransfer={() => setActiveTab('transfers')} />
-          )}
-
-          {activeTab === 'receipts' && (
-            <ReceiptsPage onNavigateTab={setActiveTab} />
-          )}
-
-          {activeTab === 'transfers' && (
-            <TransfersPage onNavigateTab={setActiveTab} />
-          )}
-
-          {activeTab === 'deliveries' && (
-            <DeliveriesPage />
-          )}
-
-          {activeTab === 'adjustments' && (
-            <AdjustmentsPage />
-          )}
-
-          {activeTab === 'ledger' && (
-            <StockLedgerPage />
-          )}
-
-          {activeTab === 'reports' && (
-            <ReportsPage onNavigateTab={setActiveTab} />
-          )}
-
-          {(activeTab === 'warehouse' || activeTab === 'warehouses') && (
-            <WarehousePage />
-          )}
-
-          {activeTab === 'settings' && (
-            <SettingsPage onResetData={handleResetData} />
-          )}
-
-          {activeTab === 'users' && (
-            <SettingsPage onResetData={handleResetData} />
-          )}
+        <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
+          {activeTab === 'dashboard' && <InventoryManagerDashboard onNavigateTab={setActiveTab} />}
+          {activeTab === 'products' && <ProductsPage onQuickReceive={() => setActiveTab('receipts')} onQuickTransfer={() => setActiveTab('transfers')} />}
+          {activeTab === 'receipts' && <ReceiptsPage onNavigateTab={setActiveTab} />}
+          {activeTab === 'transfers' && <TransfersPage onNavigateTab={setActiveTab} />}
+          {activeTab === 'deliveries' && <DeliveriesPage />}
+          {activeTab === 'adjustments' && <AdjustmentsPage />}
+          {activeTab === 'ledger' && <StockLedgerPage />}
+          {activeTab === 'reports' && <ReportsPage onNavigateTab={setActiveTab} />}
+          {(activeTab === 'warehouse' || activeTab === 'warehouses') && <WarehousePage />}
+          {activeTab === 'settings' && <SettingsPage onResetData={handleResetData} />}
+          {activeTab === 'users' && <SettingsPage onResetData={handleResetData} />}
         </main>
       </div>
     </div>
   );
 }
 
-/**
- * Warehouse Staff Experience (Floor Execution, Fast Actions, Speed & Error Prevention)
- */
-function StaffAppShell() {
+// =========================================================================
+// WAREHOUSE STAFF PANEL
+// =========================================================================
+function StaffPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
+  const { switchRole } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
     setActiveTab('dashboard');
   };
 
+  // Sync role to WAREHOUSE_STAFF when this panel is active
+  useEffect(() => {
+    switchRole(ROLES.WAREHOUSE_STAFF);
+  }, []);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'var(--ss-bg-app)' }}>
-      {/* Global Mission-Control Header */}
-      <Header onResetData={handleResetData} />
-
-      {/* Main Floor Body with StaffSidebar & Operational Content */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
+      <Header onResetData={handleResetData} isStaffPanel={true} onNavigateTab={setActiveTab} />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <StaffSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
-
-        <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--ss-bg-app)' }}>
-          {activeTab === 'dashboard' && (
-            <StaffDashboard onNavigateTab={setActiveTab} />
-          )}
-
-          {activeTab === 'tasks' && (
-            <StaffTasksPage onNavigateTab={setActiveTab} />
-          )}
-
-          {activeTab === 'receipts' && (
-            <StaffReceiptsPage />
-          )}
-
-          {activeTab === 'deliveries' && (
-            <StaffDeliveriesPage />
-          )}
-
-          {activeTab === 'transfers' && (
-            <StaffTransfersPage />
-          )}
-
-          {activeTab === 'stock-counting' && (
-            <StaffStockCountPage />
-          )}
-
-          {activeTab === 'profile' && (
-            <StaffProfilePage />
-          )}
+        <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
+          {activeTab === 'dashboard' && <StaffDashboard onNavigateTab={setActiveTab} />}
+          {activeTab === 'tasks' && <StaffTasksPage onNavigateTab={setActiveTab} />}
+          {activeTab === 'operations-hub' && <StaffOperationsHubPage onNavigateTab={setActiveTab} />}
+          {activeTab === 'receipts' && <StaffReceiptsPage />}
+          {activeTab === 'deliveries' && <StaffDeliveriesPage />}
+          {activeTab === 'transfers' && <StaffTransfersPage />}
+          {activeTab === 'stock-counting' && <StaffStockCountPage />}
+          {activeTab === 'profile' && <StaffProfilePage />}
         </main>
       </div>
     </div>
   );
 }
 
-/**
- * Root Controller: Auth Gating & Role-Based Panel Rendering
- */
+// =========================================================================
+// ROOT ROUTER — hash-based, NO LOGIN REQUIRED
+// =========================================================================
 function RootApp() {
-  const { user, role } = useAuth();
+  const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
 
-  // If not logged in, show Auth Screen (First view Register, Second view Login)
-  if (!user) {
-    return <AuthPage />;
+  // Listen for URL changes (both hash and pathname history)
+  useEffect(() => {
+    const handleUrlChange = () => setCurrentPanel(getPanelFromUrl());
+    window.addEventListener('hashchange', handleUrlChange);
+    window.addEventListener('popstate', handleUrlChange);
+    return () => {
+      window.removeEventListener('hashchange', handleUrlChange);
+      window.removeEventListener('popstate', handleUrlChange);
+    };
+  }, []);
+
+  if (currentPanel === 'staff') {
+    return <StaffPanel />;
   }
 
-  // If logged in as Warehouse Staff, render dedicated Warehouse Staff Panel
-  if (role === ROLES.WAREHOUSE_STAFF) {
-    return <StaffAppShell />;
-  }
-
-  // Default: Inventory Manager Panel
-  return <MainAppShell />;
+  return <ManagerPanel />;
 }
 
 export default function App() {

@@ -277,63 +277,7 @@ export const DeliveriesPage = ({ onNavigateTab }) => {
         </button>
       </div>
 
-      {/* Executive Operational Lineage Card: Who can deliver & Where data comes from */}
-      <div
-        className="ss-card"
-        style={{
-          padding: 'var(--ss-space-4)',
-          marginBottom: 'var(--ss-space-5)',
-          background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.04) 0%, rgba(99, 102, 241, 0.04) 100%)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-        }}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 'var(--ss-space-4)' }}>
-          {/* Column 1: Who can deliver */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-              <span style={{ fontSize: '1rem' }}>🛡️</span>
-              <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Who Can Deliver & Authorization Hierarchy
-              </span>
-            </div>
-            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.78125rem', color: 'var(--ss-text-secondary)', lineHeight: 1.6 }}>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>Warehouse Staff:</strong> Executes floor picking from assigned bins (e.g. Zone C, Rack A-02), packs boxes/pallets, and stages at the dispatch dock.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>Inventory Manager:</strong> Approves order release, handles stock reservations, resolves backorders, books carriers, and confirms final handoff.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>System Admin:</strong> Overrides delivery restrictions, manages stock allocations, and conducts ledger compliance audits.
-              </li>
-            </ul>
-          </div>
 
-          {/* Column 2: Where data comes from */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.35rem' }}>
-              <span style={{ fontSize: '1rem' }}>📊</span>
-              <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Data Origins & Seamless Pipeline Flow
-              </span>
-            </div>
-            <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.78125rem', color: 'var(--ss-text-secondary)', lineHeight: 1.6 }}>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>1. Customer Demand (SO):</strong> Order #, client destination, quantity, and carrier SLA deadline.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>2. Master Catalog & Bins:</strong> Pulls live available stock from designated warehouse racks and zones.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>3. Inbound Receipts:</strong> Stock received from suppliers feeds into storage bins to satisfy pending deliveries.
-              </li>
-              <li>
-                <strong style={{ color: 'var(--ss-text-primary)' }}>4. Internal Transfers:</strong> Shifts items from bulk storage to Rapid Dispatch (Zone C) ready for release.
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
 
       {/* KPI Cards */}
       <div

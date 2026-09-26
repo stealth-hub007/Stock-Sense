@@ -5,6 +5,7 @@ export const AdjustmentsPage = () => {
   const { adjustments, products, addAdjustment, editAdjustment, deleteAdjustment, approveAdjustment, rejectAdjustment } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [reasonFilter, setReasonFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdjustment, setEditingAdjustment] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
@@ -24,6 +25,8 @@ export const AdjustmentsPage = () => {
     setTimeout(() => setSuccessToast(null), 5000);
   };
 
+  const pendingCount = (adjustments || []).filter((a) => a.status === 'PENDING_APPROVAL').length;
+
   const filteredAdjustments = adjustments.filter((a) => {
     const matchesSearch =
       a.adjNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,7 +34,12 @@ export const AdjustmentsPage = () => {
       a.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.operator.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesReason = reasonFilter === 'ALL' || a.reason.includes(reasonFilter);
-    return matchesSearch && matchesReason;
+    const matchesStatus =
+      statusFilter === 'ALL' ||
+      (statusFilter === 'PENDING' && a.status === 'PENDING_APPROVAL') ||
+      (statusFilter === 'APPROVED' && a.status === 'APPROVED') ||
+      (statusFilter === 'REJECTED' && a.status === 'REJECTED');
+    return matchesSearch && matchesReason && matchesStatus;
   });
 
   const handleCreateAdjustment = (e) => {
@@ -236,6 +244,60 @@ export const AdjustmentsPage = () => {
         </div>
       </div>
 
+      {/* Pending Discrepancy Approval Banner for Manager */}
+      {pendingCount > 0 && (
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.08) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.4)',
+            borderRadius: 'var(--ss-radius-md)',
+            marginBottom: 'var(--ss-space-4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div
+              style={{
+                width: '38px',
+                height: '38px',
+                borderRadius: '50%',
+                background: 'rgba(245, 158, 11, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+              }}
+            >
+              ⏳
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--ss-warning-text)' }}>
+                {pendingCount} Floor Count Discrepanc{pendingCount > 1 ? 'ies' : 'y'} Awaiting Manager Approval
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+                Warehouse floor operators have submitted physical audit counts with inventory variances. Authorize or reject to synchronize system stock and financial ledger.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-secondary"
+              onClick={() => setStatusFilter(statusFilter === 'PENDING' ? 'ALL' : 'PENDING')}
+              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+            >
+              {statusFilter === 'PENDING' ? 'Show All Records' : `Filter Pending Only (${pendingCount})`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter Toolbar */}
       <div
         className="ss-card"
@@ -248,7 +310,7 @@ export const AdjustmentsPage = () => {
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ flex: '1 1 280px' }}>
+        <div style={{ flex: '1 1 240px' }}>
           <input
             type="text"
             className="ss-input"
@@ -258,8 +320,55 @@ export const AdjustmentsPage = () => {
           />
         </div>
 
+        {/* Status Filter Tabs */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: 'var(--ss-bg-app)', padding: '3px', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-border)' }}>
+          {[
+            { id: 'ALL', label: 'All', count: adjustments.length },
+            { id: 'PENDING', label: 'Pending Review', count: pendingCount, highlight: pendingCount > 0 },
+            { id: 'APPROVED', label: 'Approved', count: adjustments.filter(a => a.status === 'APPROVED').length },
+            { id: 'REJECTED', label: 'Rejected', count: adjustments.filter(a => a.status === 'REJECTED').length },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id)}
+              style={{
+                border: 'none',
+                padding: '0.3rem 0.6rem',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                borderRadius: 'var(--ss-radius-xs)',
+                cursor: 'pointer',
+                background: statusFilter === tab.id
+                  ? (tab.highlight ? 'var(--ss-warning)' : 'var(--ss-primary)')
+                  : 'transparent',
+                color: statusFilter === tab.id
+                  ? (tab.highlight ? '#000000' : '#ffffff')
+                  : 'var(--ss-text-secondary)',
+                transition: 'all 150ms ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+              }}
+            >
+              <span>{tab.label}</span>
+              <span
+                style={{
+                  fontSize: '0.625rem',
+                  padding: '1px 5px',
+                  borderRadius: '9999px',
+                  background: statusFilter === tab.id ? 'rgba(0,0,0,0.15)' : 'var(--ss-bg-surface)',
+                  fontWeight: 700,
+                }}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)' }}>Reason Filter:</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)' }}>Reason:</span>
           <select
             className="ss-select"
             value={reasonFilter}

@@ -16,7 +16,9 @@ export const InventoryManagerDashboard = ({ onNavigateTab }) => {
     confirmReceipt,
     executeTransfer,
     dispatchDelivery,
+    adjustments = [],
     addAdjustment,
+    approveAdjustment,
     addReceipt,
     addTransfer,
     triggerReorderPO,
@@ -28,6 +30,7 @@ export const InventoryManagerDashboard = ({ onNavigateTab }) => {
   const safeDeliveries = Array.isArray(deliveries) ? deliveries : [];
   const safeLedger = Array.isArray(ledger) ? ledger : [];
   const safeZones = Array.isArray(zones) ? zones : [];
+  const pendingApprovals = (adjustments || []).filter((a) => a.status === 'PENDING_APPROVAL');
 
   // Active view tab for the operations work center
   const [activeQueueTab, setActiveQueueTab] = useState('WATCHLIST'); // 'WATCHLIST' | 'RECEIPTS' | 'TRANSFERS' | 'DELIVERIES'
@@ -325,6 +328,76 @@ export const InventoryManagerDashboard = ({ onNavigateTab }) => {
           </button>
         </div>
       </div>
+
+      {/* Pending Discrepancy Approval Alert for Manager */}
+      {pendingApprovals.length > 0 && (
+        <div
+          style={{
+            padding: '1rem 1.25rem',
+            background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(239, 68, 68, 0.06) 100%)',
+            border: '1px solid rgba(245, 158, 11, 0.35)',
+            borderRadius: 'var(--ss-radius-md)',
+            marginBottom: 'var(--ss-space-5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+            <div
+              style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'rgba(245, 158, 11, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem',
+              }}
+            >
+              ⏳
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--ss-warning-text)' }}>
+                {pendingApprovals.length} Floor Discrepanc{pendingApprovals.length > 1 ? 'ies' : 'y'} Pending Manager Authorization
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+                Latest: {pendingApprovals[0].operator || 'Staff'} recorded {pendingApprovals[0].delta > 0 ? `+${pendingApprovals[0].delta}` : pendingApprovals[0].delta} variance on {pendingApprovals[0].productName || pendingApprovals[0].sku} (Ref: {pendingApprovals[0].adjNumber}).
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-primary"
+              onClick={() => {
+                approveAdjustment(pendingApprovals[0].id || pendingApprovals[0].adjNumber, user?.name || 'Sarah Chen (Manager)');
+                showToast(`✓ Discrepancy ${pendingApprovals[0].adjNumber} approved! Ledger updated.`);
+              }}
+              style={{
+                fontSize: '0.75rem',
+                padding: '0.35rem 0.75rem',
+                backgroundColor: 'var(--ss-success)',
+                borderColor: 'var(--ss-success)',
+              }}
+            >
+              ✓ Quick Approve Ref {pendingApprovals[0].adjNumber}
+            </button>
+            <button
+              type="button"
+              className="ss-btn ss-btn-secondary"
+              onClick={() => onNavigateTab && onNavigateTab('adjustments')}
+              style={{ fontSize: '0.75rem', padding: '0.35rem 0.75rem' }}
+            >
+              Review All ({pendingApprovals.length}) →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 6 Interactive Primary KPI Cards */}
       <div

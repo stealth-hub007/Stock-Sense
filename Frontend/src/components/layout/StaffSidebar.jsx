@@ -38,6 +38,12 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
       title: 'OPERATIONS',
       items: [
         {
+          id: 'operations-hub',
+          label: 'Operations Work Center',
+          icon: '🗄️',
+          badge: null,
+        },
+        {
           id: 'receipts',
           label: 'Receipts',
           icon: '📥',
@@ -76,13 +82,6 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
           icon: '👤',
           badge: null,
         },
-        {
-          id: 'logout',
-          label: 'Logout',
-          icon: '🚪',
-          badge: null,
-          isLogout: true,
-        },
       ],
     },
   ];
@@ -97,11 +96,16 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
         flexDirection: 'column',
         justifyContent: 'space-between',
         flexShrink: 0,
-        height: '100%',
+        position: 'sticky',
+        top: '64px',
+        height: 'calc(100vh - 64px)',
+        alignSelf: 'flex-start',
+        zIndex: 40,
+        overflow: 'hidden',
       }}
     >
       {/* Top Nav Items */}
-      <div style={{ padding: 'var(--ss-space-4) 0', overflowY: 'auto' }}>
+      <div style={{ padding: 'var(--ss-space-4) 0', overflowY: 'auto', flex: 1 }}>
         {/* Role Identity Tag in Sidebar */}
         <div style={{ padding: '0 var(--ss-space-4) var(--ss-space-4)' }}>
           <div
@@ -150,11 +154,7 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
                     key={item.id}
                     type="button"
                     onClick={() => {
-                      if (item.isLogout) {
-                        logout();
-                      } else {
-                        onSelectTab(item.id);
-                      }
+                      onSelectTab(item.id);
                     }}
                     style={{
                       width: 'calc(100% - 1.5rem)',
@@ -221,6 +221,7 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
           padding: 'var(--ss-space-3) var(--ss-space-4)',
           borderTop: '1px solid var(--ss-border)',
           backgroundColor: 'var(--ss-bg-app)',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>

@@ -27,9 +27,15 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
         flexDirection: 'column',
         justifyContent: 'space-between',
         flexShrink: 0,
+        position: 'sticky',
+        top: '110px',
+        height: 'calc(100vh - 110px)',
+        alignSelf: 'flex-start',
+        zIndex: 40,
+        overflow: 'hidden',
       }}
     >
-      <div style={{ padding: 'var(--ss-space-4) 0', overflowY: 'auto' }}>
+      <div style={{ padding: 'var(--ss-space-4) 0', overflowY: 'auto', flex: 1 }}>
         {categories.map((category) => {
           const itemsInCategory = navItems.filter((item) => item.category === category.key);
           if (itemsInCategory.length === 0) return null;
@@ -123,6 +129,7 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
           background: 'var(--ss-bg-app)',
           margin: 'var(--ss-space-2)',
           borderRadius: 'var(--ss-radius-md)',
+          flexShrink: 0,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>

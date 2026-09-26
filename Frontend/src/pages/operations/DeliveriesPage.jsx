@@ -1,20 +1,34 @@
 import React, { useState } from 'react';
-import { INITIAL_DELIVERIES_QUEUE, INITIAL_PRODUCTS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const DeliveriesPage = () => {
-  const [deliveries, setDeliveries] = useState(INITIAL_DELIVERIES_QUEUE);
+  const { deliveries, products, addDelivery, editDelivery, deleteDelivery, dispatchDelivery } = useInventory();
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
 
   // New delivery order form
   const [newOrderNo, setNewOrderNo] = useState('');
   const [newCustomer, setNewCustomer] = useState('');
-  const [newSku, setNewSku] = useState(INITIAL_PRODUCTS[0].sku);
+  const [newSku, setNewSku] = useState(products[0]?.sku || 'MTR-9002');
   const [newQty, setNewQty] = useState(10);
   const [newCarrier, setNewCarrier] = useState('FedEx Freight Priority');
   const [newDest, setNewDest] = useState('Chicago, IL, USA');
+
+  // Edit delivery order form
+  const [editCustomer, setEditCustomer] = useState('');
+  const [editQty, setEditQty] = useState(5);
+  const [editCarrier, setEditCarrier] = useState('');
+  const [editDest, setEditDest] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editStatus, setEditStatus] = useState('READY_TO_DISPATCH');
+
+  const showToast = (msg) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
 
   const filteredDeliveries = deliveries.filter((d) => {
     const matchesSearch =
@@ -28,46 +42,60 @@ export const DeliveriesPage = () => {
   });
 
   const handleDispatchOrder = (orderNo, sku, qty, customer) => {
-    setDeliveries((prev) =>
-      prev.map((d) =>
-        d.orderNo === orderNo
-          ? {
-              ...d,
-              status: 'DISPATCHED',
-              dispatchedAt: 'Just now',
-            }
-          : d
-      )
-    );
-
-    setSuccessToast(`Outbound order ${orderNo} dispatched to ${customer}! -${qty} units of ${sku} deducted in ledger.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    dispatchDelivery(orderNo, 'Sarah Chen (Manager)');
+    showToast(`✓ Outbound order ${orderNo} dispatched to ${customer}! -${qty} units of ${sku} deducted and written to stock ledger.`);
   };
 
   const handleCreateDelivery = (e) => {
     e.preventDefault();
-    const prod = INITIAL_PRODUCTS.find((p) => p.sku === newSku) || INITIAL_PRODUCTS[0];
-
-    const newDeliveryItem = {
-      id: `del-${Date.now().toString().slice(-4)}`,
+    const created = addDelivery({
       orderNo: newOrderNo || `SO-${Math.floor(9000 + Math.random() * 900)}`,
       customer: newCustomer || 'Acme Industrial Robotics',
-      sku: prod.sku,
-      productName: prod.name,
+      sku: newSku,
       qty: parseInt(newQty, 10) || 5,
-      sourceLocation: prod.primaryLocation,
       carrier: newCarrier,
-      deadline: 'Today, EOD',
       destination: newDest,
-      status: 'READY_TO_DISPATCH',
-    };
+      deadline: 'Today, EOD',
+    });
 
-    setDeliveries([newDeliveryItem, ...deliveries]);
     setIsModalOpen(false);
     setNewOrderNo('');
     setNewCustomer('');
-    setSuccessToast(`Outbound order ${newDeliveryItem.orderNo} created for ${newDeliveryItem.customer}.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    showToast(`✓ Outbound delivery ${created.orderNo} created and persisted in localStorage!`);
+  };
+
+  const openEditModal = (d) => {
+    setEditingDelivery(d);
+    setEditCustomer(d.customer);
+    setEditQty(d.qty);
+    setEditCarrier(d.carrier || 'FedEx Freight Priority');
+    setEditDest(d.destination);
+    setEditDeadline(d.deadline || 'Today, EOD');
+    setEditStatus(d.status);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingDelivery) return;
+
+    editDelivery(editingDelivery.id, {
+      customer: editCustomer,
+      qty: parseInt(editQty, 10) || editingDelivery.qty,
+      carrier: editCarrier,
+      destination: editDest,
+      deadline: editDeadline,
+      status: editStatus,
+    });
+
+    showToast(`✓ Order ${editingDelivery.orderNo} details updated and saved!`);
+    setEditingDelivery(null);
+  };
+
+  const handleDeleteDelivery = (d) => {
+    if (window.confirm(`Delete outbound delivery order ${d.orderNo} for ${d.customer}?`)) {
+      deleteDelivery(d.id);
+      showToast(`🗑 Order ${d.orderNo} deleted.`);
+    }
   };
 
   return (
@@ -120,16 +148,20 @@ export const DeliveriesPage = () => {
               Outbound Delivery Orders & Dispatch
             </h1>
             <span className="ss-badge ss-badge-info">LIFECYCLE: STAGE 3 (DELIVER)</span>
+            <span className="ss-badge ss-badge-success">PERSISTED LOCALSTORAGE</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
-            Pick, pack, and release customer shipments. Every confirmed dispatch decrements inventory on the double-entry ledger.
+            Pick, pack, edit, and release customer shipments. Every confirmed dispatch decrements inventory on the double-entry ledger.
           </p>
         </div>
 
         <button
           type="button"
           className="ss-btn ss-btn-primary"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setNewSku(products[0]?.sku || 'MTR-9002');
+            setIsModalOpen(true);
+          }}
         >
           + Create Delivery Order
         </button>
@@ -221,7 +253,7 @@ export const DeliveriesPage = () => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>CARRIER & DEADLINE</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>DISPATCH QTY</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTION</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -291,24 +323,46 @@ export const DeliveriesPage = () => {
                     </td>
 
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      {isReady || isPacked ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem' }}>
+                        {/* Dispatch Button */}
+                        {(isReady || isPacked) && (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-primary"
+                            onClick={() => handleDispatchOrder(d.orderNo, d.sku, d.qty, d.customer)}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            Dispatch →
+                          </button>
+                        )}
+                        {isDispatched && (
+                          <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginRight: '4px' }}>
+                            {d.dispatchedAt || 'Shipped'}
+                          </span>
+                        )}
+
+                        {/* Edit Button */}
                         <button
                           type="button"
-                          className="ss-btn ss-btn-primary"
-                          onClick={() => handleDispatchOrder(d.orderNo, d.sku, d.qty, d.customer)}
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                          className="ss-btn ss-btn-secondary"
+                          onClick={() => openEditModal(d)}
+                          title="Edit Order"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                         >
-                          Dispatch Order →
+                          ✎
                         </button>
-                      ) : isDispatched ? (
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
-                          {d.dispatchedAt}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--ss-danger-text)' }}>
-                          Stock Hold
-                        </span>
-                      )}
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-ghost"
+                          onClick={() => handleDeleteDelivery(d)}
+                          title="Delete Order"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.45rem', color: 'var(--ss-danger)' }}
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -349,7 +403,7 @@ export const DeliveriesPage = () => {
                   Create Outbound Delivery Order
                 </h3>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
-                  Allocate items for customer shipment and dispatch.
+                  Allocate items for customer shipment and dispatch (Saves to localStorage).
                 </p>
               </div>
               <button
@@ -401,7 +455,7 @@ export const DeliveriesPage = () => {
                   value={newSku}
                   onChange={(e) => setNewSku(e.target.value)}
                 >
-                  {INITIAL_PRODUCTS.map((p) => (
+                  {products.map((p) => (
                     <option key={p.sku} value={p.sku}>
                       {p.sku} — {p.name} ({p.available} available)
                     </option>
@@ -462,6 +516,152 @@ export const DeliveriesPage = () => {
                 </button>
                 <button type="submit" className="ss-btn ss-btn-primary">
                   Book Delivery Order
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Delivery Modal */}
+      {editingDelivery && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Edit Delivery Order ({editingDelivery.orderNo})
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Modify recipient, allocation quantity, carrier, or dispatch status.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setEditingDelivery(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Customer Name
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editCustomer}
+                  onChange={(e) => setEditCustomer(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Quantity to Dispatch
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="ss-input"
+                    value={editQty}
+                    onChange={(e) => setEditQty(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Status
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                  >
+                    <option value="READY_TO_DISPATCH">Ready to Dispatch</option>
+                    <option value="PACKED">Packed in Bay</option>
+                    <option value="AWAITING_STOCK">Awaiting Stock</option>
+                    <option value="DISPATCHED">Dispatched / Shipped</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Carrier
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editCarrier}
+                    onChange={(e) => setEditCarrier(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Deadline
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editDeadline}
+                    onChange={(e) => setEditDeadline(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Destination Address
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editDest}
+                  onChange={(e) => setEditDest(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setEditingDelivery(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save Changes
                 </button>
               </div>
             </form>

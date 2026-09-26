@@ -224,7 +224,7 @@ export const TransfersPage = ({ onNavigateTab }) => {
               Internal Location Transfers
             </h1>
             <span className="ss-badge ss-badge-info">LIFECYCLE: STAGE 2 (RELOCATION)</span>
-            <span className="ss-badge ss-badge-success">● FULL CRUD</span>
+            <span className="ss-badge ss-badge-success">● AUDITED LOGS</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             Move pallets and parts between receiving bays, high-bay storage racks, and rapid dispatch staging areas.
@@ -497,7 +497,7 @@ export const TransfersPage = ({ onNavigateTab }) => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>QTY MOVED</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>PRIORITY & REASON</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>

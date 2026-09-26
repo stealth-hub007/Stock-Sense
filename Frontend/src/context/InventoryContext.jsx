@@ -25,7 +25,44 @@ const STORAGE_KEYS = {
   SETTINGS: 'stocksense_settings_v1',
   WAREHOUSES: 'stocksense_warehouses_v1',
   SUPPLIERS: 'stocksense_suppliers_v1',
+  NOTIFICATIONS: 'stocksense_notifications_v1',
 };
+
+export const INITIAL_NOTIFICATIONS = [
+  {
+    id: 'notif-01',
+    type: 'DISCREPANCY_APPROVAL',
+    title: 'Discrepancy Approval Required',
+    message: 'Alex Rivera (Staff) recorded a -20 unit variance on Industrial High-Torque Servo Motor 48V (MTR-9002) at Zone C. Manager authorization required to reconcile ledger.',
+    urgency: 'HIGH',
+    timestamp: '15 mins ago',
+    read: false,
+    referenceNumber: 'ADJ-1589',
+    sku: 'MTR-9002',
+    delta: -20,
+    targetRole: 'INVENTORY_MANAGER',
+  },
+  {
+    id: 'notif-02',
+    type: 'INBOUND_ARRIVED',
+    title: 'Inbound PO-2026-088 Staged at Dock 01',
+    message: 'Shipment from Siemens Industrial received. 45 units staged and ready for putaway.',
+    urgency: 'NORMAL',
+    timestamp: '1 hour ago',
+    read: false,
+    targetRole: 'ALL',
+  },
+  {
+    id: 'notif-03',
+    type: 'LOW_STOCK',
+    title: 'Low Stock Safety Alert',
+    message: 'Shielded Drag Chain Cable (CAB-8820) reached 42 units (Reorder threshold: 50).',
+    urgency: 'NORMAL',
+    timestamp: '2 hours ago',
+    read: true,
+    targetRole: 'INVENTORY_MANAGER',
+  },
+];
 
 // Helper to safely load from localStorage with fallback
 const loadFromStorage = (key, fallback) => {
@@ -84,10 +121,48 @@ export const InventoryProvider = ({ children }) => {
     loadFromStorage(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS)
   );
 
+  const [notifications, setNotifications] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
+  );
+
   // Sync state to localStorage whenever modified
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
+  }, [notifications]);
+
+  // Notifications Helpers
+  const addNotification = (notif) => {
+    const newNotif = {
+      id: notif.id || `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: notif.timestamp || 'Just now',
+      read: false,
+      ...notif,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+    return newNotif;
+  };
+
+  const markNotificationRead = (id) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  };
+
+  const dismissNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.LEDGER, JSON.stringify(ledger));
@@ -138,6 +213,7 @@ export const InventoryProvider = ({ children }) => {
     setAdjustments(INITIAL_ADJUSTMENTS);
     setZones(INITIAL_ZONES);
     setSettings(INITIAL_SETTINGS);
+    setNotifications(INITIAL_NOTIFICATIONS);
   };
 
   // Helper to record immutable ledger entries
@@ -277,7 +353,8 @@ export const InventoryProvider = ({ children }) => {
       targetLocation: receiptData.targetLocation || prod.primaryLocation,
       eta: receiptData.eta || 'Today, Incoming',
       carrier: receiptData.carrier || 'Global Express Freight',
-      status: 'READY_TO_RECEIVE',
+      status: receiptData.status || 'PENDING',
+      createdAt: receiptData.createdAt || 'Just now',
     };
     setReceipts((prev) => [newReceipt, ...prev]);
     return newReceipt;
@@ -332,13 +409,13 @@ export const InventoryProvider = ({ children }) => {
       prev.map((r) =>
         r.poNumber === poNumber || r.id === poNumber
           ? {
-              ...r,
-              status: 'RECEIVED',
-              receivedQty: qty,
-              receivedAt: 'Just now',
-              receivedBy: operatorName || 'Sarah Chen (Manager)',
-              readyForTransfer: true,
-            }
+            ...r,
+            status: 'RECEIVED',
+            receivedQty: qty,
+            receivedAt: 'Just now',
+            receivedBy: operatorName || 'Sarah Chen (Manager)',
+            readyForTransfer: true,
+          }
           : r
       )
     );
@@ -380,9 +457,9 @@ export const InventoryProvider = ({ children }) => {
 
     const reorderQty = prod.reorderRule
       ? Math.max(
-          prod.reorderRule.maxStock - prod.onHand,
-          prod.reorderRule.minStock || 50
-        )
+        prod.reorderRule.maxStock - prod.onHand,
+        prod.reorderRule.minStock || 50
+      )
       : Math.max(100 - prod.onHand, 50);
 
     const poNumber = `PO-AUTO-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -507,11 +584,11 @@ export const InventoryProvider = ({ children }) => {
         prev.map((r) =>
           r.poNumber === transfer.linkedPo || r.id === transfer.linkedPo
             ? {
-                ...r,
-                transferredTo: transfer.toLocation,
-                shiftedToWarehouse: transfer.toWarehouse,
-                transferNo: transfer.transferNo,
-              }
+              ...r,
+              transferredTo: transfer.toLocation,
+              shiftedToWarehouse: transfer.toWarehouse,
+              transferNo: transfer.transferNo,
+            }
             : r
         )
       );
@@ -585,12 +662,12 @@ export const InventoryProvider = ({ children }) => {
       prev.map((r) =>
         r.poNumber === poNumber || r.id === poNumber
           ? {
-              ...r,
-              status: 'RECEIVED',
-              transferredTo: destLoc,
-              shiftedToWarehouse: targetStore,
-              transferNo: trNumber,
-            }
+            ...r,
+            status: 'RECEIVED',
+            transferredTo: destLoc,
+            shiftedToWarehouse: targetStore,
+            transferNo: trNumber,
+          }
           : r
       )
     );
@@ -734,11 +811,11 @@ export const InventoryProvider = ({ children }) => {
       prev.map((d) =>
         d.orderNo === orderNo || d.id === orderNo
           ? {
-              ...d,
-              status: targetStatus,
-              [`${targetStatus.toLowerCase()}At`]: 'Just now',
-              [`${targetStatus.toLowerCase()}By`]: operatorName || 'Sarah Chen (Manager)',
-            }
+            ...d,
+            status: targetStatus,
+            [`${targetStatus.toLowerCase()}At`]: 'Just now',
+            [`${targetStatus.toLowerCase()}By`]: operatorName || 'Sarah Chen (Manager)',
+          }
           : d
       )
     );
@@ -771,13 +848,13 @@ export const InventoryProvider = ({ children }) => {
       prev.map((p) =>
         p.sku === delivery.sku
           ? {
-              ...p,
-              onHand: newOnHand,
-              allocated: newAllocated,
-              available: newAvailable,
-              status: newStatus,
-              locations: updatedLocations,
-            }
+            ...p,
+            onHand: newOnHand,
+            allocated: newAllocated,
+            available: newAvailable,
+            status: newStatus,
+            locations: updatedLocations,
+          }
           : p
       )
     );
@@ -787,11 +864,11 @@ export const InventoryProvider = ({ children }) => {
       prev.map((d) =>
         d.orderNo === orderNo || d.id === orderNo
           ? {
-              ...d,
-              status: 'DISPATCHED',
-              dispatchedAt: 'Just now',
-              dispatchedBy: operatorName || 'Sarah Chen (Manager)',
-            }
+            ...d,
+            status: 'DISPATCHED',
+            dispatchedAt: 'Just now',
+            dispatchedBy: operatorName || 'Sarah Chen (Manager)',
+          }
           : d
       )
     );
@@ -883,6 +960,7 @@ export const InventoryProvider = ({ children }) => {
   const addAdjustment = (adjData) => {
     const prod = products.find((p) => p.sku === adjData.sku) || products[0];
     const qty = parseInt(adjData.delta, 10) || 0;
+    const isPendingApproval = adjData.requiresApproval || adjData.status === 'PENDING_APPROVAL';
     const newOnHand = Math.max(0, prod.onHand + qty);
     const newStatus = newOnHand === 0 ? 'OUT_OF_STOCK' : newOnHand <= prod.minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
 
@@ -892,40 +970,176 @@ export const InventoryProvider = ({ children }) => {
       sku: prod.sku,
       productName: prod.name,
       location: adjData.location || prod.primaryLocation,
-      systemQty: prod.onHand,
-      physicalQty: newOnHand,
+      systemQty: adjData.systemQty !== undefined ? adjData.systemQty : prod.onHand,
+      physicalQty: adjData.physicalQty !== undefined ? adjData.physicalQty : newOnHand,
       delta: qty,
       reason: adjData.reason || 'Cycle Count Discrepancy',
       operator: adjData.operator || 'Sarah Chen (Manager)',
-      approvedBy: adjData.approvedBy || 'Sarah Chen (Manager)',
+      approvedBy: isPendingApproval ? null : (adjData.approvedBy || 'Sarah Chen (Manager)'),
       timestamp: 'Just now',
-      status: 'APPROVED',
+      status: isPendingApproval ? 'PENDING_APPROVAL' : 'APPROVED',
+      requiresApproval: isPendingApproval,
+      submittedByRole: adjData.submittedByRole || 'WAREHOUSE_STAFF',
     };
-
-    // Update product count
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.sku === prod.sku ? { ...p, onHand: newOnHand, status: newStatus } : p
-      )
-    );
 
     setAdjustments((prev) => [newAdj, ...prev]);
 
-    // Append to ledger
-    recordLedgerEntry({
-      type: 'ADJUSTMENT',
-      reference: newAdj.adjNumber,
-      sku: newAdj.sku,
-      productName: newAdj.productName,
-      source: newAdj.location,
-      destination: qty < 0 ? 'Scrap Bin / Audit Discrepancy' : 'Physical Recount Inflow',
-      qtyChange: qty,
-      balanceAfter: newOnHand,
-      operator: newAdj.operator,
-      note: `Cycle count adjustment: ${newAdj.reason}`,
-    });
+    // If pending approval (submitted by staff), dispatch notification to managers
+    if (isPendingApproval) {
+      addNotification({
+        id: `notif-${Date.now()}`,
+        type: 'DISCREPANCY_APPROVAL',
+        title: `🚨 Discrepancy Approval Required: ${newAdj.adjNumber}`,
+        message: `${newAdj.operator} reported ${newAdj.delta > 0 ? '+' : ''}${newAdj.delta} variance on ${newAdj.productName} (${newAdj.sku}) at ${newAdj.location}. Manager authorization required.`,
+        urgency: 'HIGH',
+        timestamp: 'Just now',
+        read: false,
+        referenceNumber: newAdj.adjNumber,
+        referenceId: newAdj.id,
+        sku: newAdj.sku,
+        delta: newAdj.delta,
+        targetRole: 'INVENTORY_MANAGER',
+      });
+    }
+
+    // If immediate approval (Manager), update stock and ledger immediately
+    if (!isPendingApproval) {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.sku === prod.sku ? { ...p, onHand: newOnHand, status: newStatus } : p
+        )
+      );
+
+      // Append to ledger
+      recordLedgerEntry({
+        type: 'ADJUSTMENT',
+        reference: newAdj.adjNumber,
+        sku: newAdj.sku,
+        productName: newAdj.productName,
+        source: newAdj.location,
+        destination: qty < 0 ? 'Scrap Bin / Audit Discrepancy' : 'Physical Recount Inflow',
+        qtyChange: qty,
+        balanceAfter: newOnHand,
+        operator: newAdj.operator,
+        note: `Cycle count adjustment: ${newAdj.reason}`,
+      });
+    }
 
     return newAdj;
+  };
+
+  // Manager approves discrepancy submitted by Warehouse Staff
+  const approveAdjustment = (adjId, approverName) => {
+    const adj = adjustments.find((a) => a.id === adjId || a.adjNumber === adjId);
+    if (!adj) return;
+
+    const prod = products.find((p) => p.sku === adj.sku);
+    if (!prod) return;
+
+    const newOnHand = Math.max(0, prod.onHand + adj.delta);
+    const newStatus = newOnHand === 0 ? 'OUT_OF_STOCK' : newOnHand <= prod.minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
+
+    // Update product stock
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.sku === prod.sku
+          ? {
+              ...p,
+              onHand: newOnHand,
+              available: Math.max(0, newOnHand - (p.allocated || 0)),
+              status: newStatus,
+            }
+          : p
+      )
+    );
+
+    // Update adjustment status
+    setAdjustments((prev) =>
+      prev.map((a) =>
+        a.id === adjId || a.adjNumber === adjId
+          ? {
+              ...a,
+              status: 'APPROVED',
+              approvedBy: approverName || 'Sarah Chen (Manager)',
+              approvedAt: 'Just now',
+            }
+          : a
+      )
+    );
+
+    // Update linked notification status
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.referenceNumber === adj.adjNumber || n.referenceId === adj.id
+          ? { ...n, read: true, resolved: true, resolvedBy: approverName || 'Sarah Chen (Manager)' }
+          : n
+      )
+    );
+
+    // Record ledger entry
+    recordLedgerEntry({
+      type: 'ADJUSTMENT',
+      reference: adj.adjNumber,
+      sku: adj.sku,
+      productName: adj.productName,
+      source: adj.location,
+      destination: adj.delta < 0 ? 'Cycle Discrepancy (Approved)' : 'Physical Recount Inflow (Approved)',
+      qtyChange: adj.delta,
+      balanceAfter: newOnHand,
+      operator: approverName || 'Sarah Chen (Manager)',
+      note: `Manager approved staff count discrepancy: ${adj.reason} (Counted: ${adj.physicalQty}, System: ${adj.systemQty})`,
+    });
+
+    // Notify staff & system
+    addNotification({
+      id: `notif-${Date.now()}`,
+      type: 'DISCREPANCY_APPROVED',
+      title: `✓ Discrepancy ${adj.adjNumber} Approved`,
+      message: `${approverName || 'Sarah Chen (Manager)'} approved ${adj.delta > 0 ? '+' : ''}${adj.delta} variance for ${adj.productName} (${adj.sku}). System on-hand & ledger reconciled.`,
+      urgency: 'NORMAL',
+      timestamp: 'Just now',
+      read: false,
+      referenceNumber: adj.adjNumber,
+      referenceId: adj.id,
+      targetRole: 'ALL',
+    });
+  };
+
+  // Manager rejects discrepancy
+  const rejectAdjustment = (adjId, rejectorName, reason) => {
+    setAdjustments((prev) =>
+      prev.map((a) =>
+        a.id === adjId || a.adjNumber === adjId
+          ? {
+              ...a,
+              status: 'REJECTED',
+              rejectedBy: rejectorName || 'Sarah Chen (Manager)',
+              rejectReason: reason || 'Discrepancy count rejected upon re-verification',
+              rejectedAt: 'Just now',
+            }
+          : a
+      )
+    );
+
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.referenceNumber === adjId || n.referenceId === adjId || n.id === adjId
+          ? { ...n, read: true, rejected: true }
+          : n
+      )
+    );
+
+    addNotification({
+      id: `notif-${Date.now()}`,
+      type: 'DISCREPANCY_REJECTED',
+      title: `✕ Discrepancy Rejected: ${adjId}`,
+      message: `${rejectorName || 'Sarah Chen (Manager)'} rejected count adjustment: "${reason || 'Count rejected upon re-verification'}".`,
+      urgency: 'NORMAL',
+      timestamp: 'Just now',
+      read: false,
+      referenceNumber: adjId,
+      targetRole: 'ALL',
+    });
   };
 
   const editAdjustment = (id, updatedData) => {
@@ -1018,6 +1232,8 @@ export const InventoryProvider = ({ children }) => {
         addAdjustment,
         editAdjustment,
         deleteAdjustment,
+        approveAdjustment,
+        rejectAdjustment,
 
         ledger,
         recordLedgerEntry,
@@ -1039,6 +1255,13 @@ export const InventoryProvider = ({ children }) => {
 
         suppliers,
         triggerReorderPO,
+
+        notifications,
+        addNotification,
+        markNotificationRead,
+        markAllNotificationsRead,
+        dismissNotification,
+        clearAllNotifications,
 
         metrics,
         resetAllData,

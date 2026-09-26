@@ -66,23 +66,9 @@ export const DemoStepper = ({ currentStep = 1, onStepClick }) => {
                   boxShadow: isCurrent ? '0 1px 2px rgba(37, 99, 235, 0.1)' : 'none',
                 }}
               >
-                <span
-                  style={{
-                    width: '18px',
-                    height: '18px',
-                    borderRadius: '50%',
-                    background: isCurrent ? 'var(--ss-primary)' : 'var(--ss-bg-app)',
-                    color: isCurrent ? '#ffffff' : 'var(--ss-text-muted)',
-                    border: isCurrent ? 'none' : '1px solid var(--ss-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '0.6875rem',
-                    fontWeight: 700,
-                  }}
-                >
-                  {step.number}
-                </span>
+                {isCurrent && (
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--ss-primary)', display: 'inline-block' }} />
+                )}
                 <span>{step.label}</span>
                 <span style={{ color: isCurrent ? 'var(--ss-primary)' : 'var(--ss-text-muted)', fontSize: '0.6875rem', fontWeight: 600 }}>
                   ({step.effect})

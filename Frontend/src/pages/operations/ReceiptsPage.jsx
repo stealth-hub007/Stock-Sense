@@ -189,7 +189,7 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
               Inbound Receipts & PO Logistics
             </h1>
             <span className="ss-badge ss-badge-success">LIFECYCLE: STAGE 1 (RECEIVE)</span>
-            <span className="ss-badge ss-badge-info">● PERSISTED CRUD</span>
+            <span className="ss-badge ss-badge-info">● REAL-TIME SYNC</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             Validate incoming vendor shipments, edit delivery manifests, and confirm arrival with immediate stock increment.
@@ -342,7 +342,7 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>RECEIVING BAY</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>EXPECTED QTY</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>

@@ -242,7 +242,11 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               <button
                 type="button"
                 onClick={() => {
-                  window.location.hash = '#/manager';
+                  if (!isAdminPanel && !isStaffPanel) {
+                    if (onNavigateTab) onNavigateTab('');
+                  } else {
+                    window.location.hash = '#/manager';
+                  }
                 }}
                 style={{
                   padding: '0.25rem 0.6rem',
@@ -263,7 +267,11 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               <button
                 type="button"
                 onClick={() => {
-                  window.location.hash = '#/staff';
+                  if (isStaffPanel) {
+                    if (onNavigateTab) onNavigateTab('dashboard');
+                  } else {
+                    window.location.hash = '#/staff';
+                  }
                 }}
                 style={{
                   padding: '0.25rem 0.6rem',
@@ -285,7 +293,11 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.hash = '#/admin';
+                    if (isAdminPanel) {
+                      if (onNavigateTab) onNavigateTab('dashboard');
+                    } else {
+                      window.location.hash = '#/admin';
+                    }
                   }}
                   style={{
                     padding: '0.25rem 0.6rem',

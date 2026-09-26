@@ -1,11 +1,49 @@
 import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
+import { useAuth } from '../../context/AuthContext';
+import { ROLES, ROLE_LABELS } from '../../constants/roles';
 
 export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
-  const { products, addProduct, editProduct, deleteProduct } = useInventory();
+  const {
+    products,
+    addProduct,
+    editProduct,
+    deleteProduct,
+    createDeliveryFromProduct,
+    createTransferFromProduct,
+    executeTransfer,
+    dispatchDelivery,
+    triggerReorderPO,
+    warehouses,
+    activeWarehouse,
+  } = useInventory();
+
+  const { currentUser, role } = useAuth();
+  const isManager = role === ROLES.INVENTORY_MANAGER || role === ROLES.ADMIN;
+  const operatorName = currentUser ? `${currentUser.name} (${ROLE_LABELS[role] || 'Operator'})` : 'Sarah Chen (Manager)';
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+
+  // Quick Shifting Modal State
+  const [shiftingProduct, setShiftingProduct] = useState(null);
+  const [shiftQty, setShiftQty] = useState(10);
+  const [shiftToLocation, setShiftToLocation] = useState('Zone C (Rapid Dispatch)');
+  const [shiftToWarehouse, setShiftToWarehouse] = useState(() => (warehouses && warehouses[1] ? warehouses[1].name : 'WH-02 Midwest Regional Logistics Hub'));
+  const [shiftReason, setShiftReason] = useState('Production and dispatch staging');
+  const [shiftExecuteNow, setShiftExecuteNow] = useState(true);
+
+  // Quick Delivery Order Modal State
+  const [deliveringProduct, setDeliveringProduct] = useState(null);
+  const [deliverQty, setDeliverQty] = useState(5);
+  const [deliverCustomer, setDeliverCustomer] = useState('Precision Automation Corp');
+  const [deliverDest, setDeliverDest] = useState('Chicago, IL, USA');
+  const [deliverCarrier, setDeliverCarrier] = useState('FedEx Freight Priority');
+  const [deliverDirectDispatch, setDeliverDirectDispatch] = useState(false);
+
+  // View Bin Locations Breakdown Modal State
+  const [viewingLocationsProduct, setViewingLocationsProduct] = useState(null);
 
   // Add SKU Modal
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -40,7 +78,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
 
   const showToast = (msg) => {
     setActionToast(msg);
-    setTimeout(() => setActionToast(null), 4000);
+    setTimeout(() => setActionToast(null), 5000);
   };
 
   const categories = ['ALL', ...new Set(products.map((p) => p.category))];
@@ -130,6 +168,62 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
     }
   };
 
+  // Quick Shift: move product stock to another location
+  const handleOpenShiftModal = (product) => {
+    setShiftingProduct(product);
+    setShiftQty(Math.min(10, product.available || 0));
+    setShiftToLocation('Zone C (Rapid Dispatch)');
+    setShiftToWarehouse(warehouses && warehouses[1] ? warehouses[1].name : 'WH-02 Midwest Regional Logistics Hub');
+    setShiftReason('Staging for dispatch');
+  };
+
+  const handleExecuteShift = (e) => {
+    e.preventDefault();
+    if (!shiftingProduct) return;
+    const result = createTransferFromProduct({
+      sku: shiftingProduct.sku,
+      qty: parseInt(shiftQty, 10) || 10,
+      fromLocation: shiftingProduct.primaryLocation,
+      toLocation: shiftToLocation,
+      toWarehouse: shiftToWarehouse,
+      reason: shiftReason,
+    });
+    setShiftingProduct(null);
+    showToast(`⇄ Transfer scheduled! ${shiftQty} units of ${result.sku} moving from ${result.fromLocation} → ${shiftToLocation}`);
+  };
+
+  // Quick Delivery: create a delivery order directly from product catalog
+  const handleOpenDeliverModal = (product) => {
+    setDeliveringProduct(product);
+    setDeliverQty(Math.min(5, product.available || 1));
+    setDeliverCustomer('Precision Automation Corp');
+    setDeliverDest('Chicago, IL, USA');
+    setDeliverCarrier('FedEx Freight Priority');
+    setDeliverDirectDispatch(false);
+  };
+
+  const handleCreateDeliveryFromProduct = (e) => {
+    e.preventDefault();
+    if (!deliveringProduct) return;
+    const result = createDeliveryFromProduct({
+      sku: deliveringProduct.sku,
+      qty: parseInt(deliverQty, 10) || 5,
+      customer: deliverCustomer,
+      destination: deliverDest,
+      carrier: deliverCarrier,
+    });
+    setDeliveringProduct(null);
+    showToast(`📤 Delivery Order ${result.orderNo} created for ${deliverCustomer} — ${deliverQty} × ${result.sku}. Check Deliveries page.`);
+  };
+
+  // Auto-trigger a replenishment PO for low-stock product
+  const handleAutoReorder = (product) => {
+    const po = triggerReorderPO(product.sku);
+    if (po) {
+      showToast(`⚡ Auto-replenishment PO ${po.poNumber} created for ${product.sku}! Go to Receipts to confirm arrival.`);
+    }
+  };
+
   return (
     <div style={{ padding: 'var(--ss-space-6)', maxWidth: '1680px', margin: '0 auto', width: '100%' }}>
       {/* Toast Notification */}
@@ -200,33 +294,84 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: 'var(--ss-space-4)',
           marginBottom: 'var(--ss-space-5)',
         }}
       >
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>REGISTERED SKUs</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            {products.length} Items
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-primary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Registered SKUs
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)', marginTop: '0.25rem' }}>
+                {products.length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>items</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-primary">
+              🏷️
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Active catalog master
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL CATALOG VALUE</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
-            ${products.reduce((acc, p) => acc + (p.onHand || 0) * (p.unitCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total Catalog Value
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
+                ${products.reduce((acc, p) => acc + (p.onHand || 0) * (p.unitCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              💰
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Total inventory valuation
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>BELOW MIN SAFETY POINT</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)' }}>
-            {products.filter((p) => p.status !== 'IN_STOCK').length} SKUs
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-warning)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-warning-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Below Min Safety Point
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)', marginTop: '0.25rem' }}>
+                {products.filter((p) => p.status !== 'IN_STOCK').length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>SKUs</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-warning">
+              ⚠️
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Requires restocking PO
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL ON-HAND UNITS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>
-            {products.reduce((acc, p) => acc + (p.onHand || 0), 0).toLocaleString()} Units
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-info)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-info-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total On-Hand Units
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)', marginTop: '0.25rem' }}>
+                {products.reduce((acc, p) => acc + (p.onHand || 0), 0).toLocaleString()} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>units</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-info">
+              📦
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Across all bin locations
           </div>
         </div>
       </div>
@@ -387,9 +532,57 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                       {!isLow && !isOut && <span className="ss-badge ss-badge-success">In Stock</span>}
                     </td>
 
-                    {/* CRUD ACTION BUTTONS: Edit, Delete, Quick Moves */}
+                    {/* RICH ACTION BUTTONS: Ship, Shift, Reorder, Edit, Delete */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        {/* Quick Delivery Order */}
+                        {!isOut && (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-primary"
+                            onClick={() => handleOpenDeliverModal(p)}
+                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem' }}
+                            title="Create Delivery Order from this product"
+                          >
+                            📤 Ship
+                          </button>
+                        )}
+
+                        {/* Quick Shift to another location */}
+                        {!isOut && (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-secondary"
+                            onClick={() => handleOpenShiftModal(p)}
+                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                            title="Shift stock to another bin or warehouse"
+                          >
+                            ⇄ Shift
+                          </button>
+                        )}
+
+                        {/* Auto Reorder PO for low/out of stock */}
+                        {(isLow || isOut) && (
+                          <button
+                            type="button"
+                            onClick={() => handleAutoReorder(p)}
+                            style={{
+                              fontSize: '0.6875rem',
+                              padding: '0.25rem 0.5rem',
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              borderRadius: 'var(--ss-radius-sm)',
+                              cursor: 'pointer',
+                              color: 'var(--ss-danger)',
+                              fontWeight: 700,
+                            }}
+                            title="Auto-generate replenishment Purchase Order"
+                          >
+                            ⚡ PO
+                          </button>
+                        )}
+
+                        {/* Edit Product */}
                         <button
                           type="button"
                           className="ss-btn ss-btn-secondary"
@@ -397,17 +590,21 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                           style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
                           title="Edit Product Details"
                         >
-                          ✏️ Edit
+                          ✏️
                         </button>
-                        <button
-                          type="button"
-                          className="ss-btn ss-btn-danger"
-                          onClick={() => handleDeleteProduct(p)}
-                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
-                          title="Delete Product from Catalog"
-                        >
-                          🗑
-                        </button>
+
+                        {/* Delete Product */}
+                        {isManager && (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-ghost"
+                            onClick={() => handleDeleteProduct(p)}
+                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem', color: 'var(--ss-danger)' }}
+                            title="Delete Product from Catalog"
+                          >
+                            🗑
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -424,8 +621,8 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -673,8 +870,8 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -884,6 +1081,270 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 </button>
                 <button type="submit" className="ss-btn ss-btn-primary">
                   Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* QUICK SHIFT MODAL: Move product stock to another bin/warehouse */}
+      {/* ============================================================ */}
+      {shiftingProduct && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  ⇄ Quick Product Shift
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Move {shiftingProduct.sku} — {shiftingProduct.name} from <strong>{shiftingProduct.primaryLocation}</strong> to a new bin or facility.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setShiftingProduct(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '0.875rem', padding: '0.6rem 0.75rem', background: 'var(--ss-bg-app)', borderRadius: 'var(--ss-radius-md)', border: '1px solid var(--ss-border)', fontSize: '0.78125rem' }}>
+              <span style={{ color: 'var(--ss-text-muted)' }}>Current Stock:</span>{' '}
+              <strong style={{ color: 'var(--ss-text-primary)' }}>{shiftingProduct.onHand} on hand, {shiftingProduct.available} available</strong>{' | '}
+              <span style={{ color: 'var(--ss-text-muted)' }}>From:</span>{' '}
+              <strong style={{ fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>{shiftingProduct.primaryLocation}</strong>
+            </div>
+
+            <form onSubmit={handleExecuteShift} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Qty to Shift
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={shiftingProduct.available}
+                    className="ss-input"
+                    value={shiftQty}
+                    onChange={(e) => setShiftQty(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Target Bin / Zone
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={shiftToLocation}
+                    onChange={(e) => setShiftToLocation(e.target.value)}
+                  >
+                    <option value="Zone C (Rapid Dispatch)">Zone C (Rapid Dispatch)</option>
+                    <option value="Zone A (Main Rack)">Zone A (Main Rack)</option>
+                    <option value="Zone B (Bulk Bay)">Zone B (Bulk Bay)</option>
+                    <option value="Zone D (Raw Materials)">Zone D (Raw Materials)</option>
+                    <option value="Rack A-02">Rack A-02</option>
+                    <option value="Rack B-01">Rack B-01</option>
+                    <option value="Rack D-02">Rack D-02</option>
+                    <option value="Bin A-14">Bin A-14</option>
+                    <option value="Bay 01 - Receiving">Bay 01 - Receiving</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Destination Warehouse / Facility
+                </label>
+                <select
+                  className="ss-select"
+                  value={shiftToWarehouse}
+                  onChange={(e) => setShiftToWarehouse(e.target.value)}
+                >
+                  {(warehouses || []).map((wh) => (
+                    <option key={wh.id} value={wh.name}>{wh.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Reason for Shift
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={shiftReason}
+                  onChange={(e) => setShiftReason(e.target.value)}
+                  placeholder="e.g. Staging for dispatch, Putaway"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <button type="button" className="ss-btn ss-btn-secondary" onClick={() => setShiftingProduct(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Execute Shift ⇄
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================ */}
+      {/* QUICK DELIVERY MODAL: Create Delivery Order from product row  */}
+      {/* ============================================================ */}
+      {deliveringProduct && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  📤 Quick Ship — Create Delivery Order
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Ship {deliveringProduct.sku} — {deliveringProduct.name} from stock.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setDeliveringProduct(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '0.875rem', padding: '0.6rem 0.75rem', background: 'var(--ss-bg-app)', borderRadius: 'var(--ss-radius-md)', border: '1px solid var(--ss-border)', fontSize: '0.78125rem' }}>
+              <span style={{ color: 'var(--ss-text-muted)' }}>Available to Ship:</span>{' '}
+              <strong style={{ color: deliveringProduct.available > 0 ? 'var(--ss-success)' : 'var(--ss-danger)' }}>
+                {deliveringProduct.available} units
+              </strong>{' '}
+              from <strong style={{ fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>{deliveringProduct.primaryLocation}</strong>
+            </div>
+
+            <form onSubmit={handleCreateDeliveryFromProduct} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Qty to Ship
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="ss-input"
+                    value={deliverQty}
+                    onChange={(e) => setDeliverQty(e.target.value)}
+                    required
+                  />
+                  {deliveringProduct.available < deliverQty && (
+                    <div style={{ fontSize: '0.625rem', color: 'var(--ss-warning)', marginTop: '2px', fontWeight: 600 }}>
+                      ⚠ Will be marked AWAITING STOCK
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Customer / Recipient
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={deliverCustomer}
+                    onChange={(e) => setDeliverCustomer(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Destination City
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={deliverDest}
+                    onChange={(e) => setDeliverDest(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Carrier Fleet
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={deliverCarrier}
+                    onChange={(e) => setDeliverCarrier(e.target.value)}
+                  >
+                    <option value="FedEx Freight Priority">FedEx Freight Priority</option>
+                    <option value="DHL Express International">DHL Express International</option>
+                    <option value="UPS Ground Fleet">UPS Ground Fleet</option>
+                    <option value="Dedicated Logistics Fleet">Dedicated Logistics Fleet</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.25rem' }}>
+                <button type="button" className="ss-btn ss-btn-secondary" onClick={() => setDeliveringProduct(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Book Delivery 📤
                 </button>
               </div>
             </form>

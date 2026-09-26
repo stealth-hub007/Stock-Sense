@@ -119,8 +119,8 @@ export const AuthModal = ({ isOpen, onClose }) => {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(11, 15, 23, 0.85)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'var(--ss-modal-backdrop)',
+        backdropFilter: 'blur(6px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

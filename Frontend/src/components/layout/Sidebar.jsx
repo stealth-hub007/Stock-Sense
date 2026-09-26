@@ -58,26 +58,33 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
                       type="button"
                       onClick={() => onSelectTab(item.id)}
                       style={{
-                        width: '100%',
+                        width: 'calc(100% - 1.5rem)',
+                        margin: '0.15rem 0.75rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '0.55rem var(--ss-space-4)',
-                        border: 'none',
-                        borderLeft: isActive ? '3px solid var(--ss-primary)' : '3px solid transparent',
+                        padding: '0.55rem 0.75rem',
+                        borderRadius: 'var(--ss-radius-md)',
+                        border: isActive ? '1px solid var(--ss-primary-border)' : '1px solid transparent',
                         background: isActive ? 'var(--ss-primary-subtle)' : 'transparent',
-                        color: isActive ? 'var(--ss-text-primary)' : 'var(--ss-text-secondary)',
+                        color: isActive ? 'var(--ss-primary)' : 'var(--ss-text-secondary)',
                         fontSize: 'var(--ss-text-sm)',
-                        fontWeight: isActive ? 600 : 500,
+                        fontWeight: isActive ? 700 : 500,
                         cursor: 'pointer',
                         textAlign: 'left',
                         transition: 'all 150ms ease',
                       }}
                       onMouseEnter={(e) => {
-                        if (!isActive) e.currentTarget.style.background = 'var(--ss-bg-surface-hover)';
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'var(--ss-bg-surface-hover)';
+                          e.currentTarget.style.color = 'var(--ss-text-primary)';
+                        }
                       }}
                       onMouseLeave={(e) => {
-                        if (!isActive) e.currentTarget.style.background = 'transparent';
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = 'var(--ss-text-secondary)';
+                        }
                       }}
                     >
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -89,11 +96,11 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
                           style={{
                             fontSize: '0.6875rem',
                             fontWeight: 700,
-                            padding: '0.1rem 0.35rem',
-                            borderRadius: 'var(--ss-radius-sm)',
-                            background: isActive ? 'rgba(59, 130, 246, 0.2)' : 'var(--ss-bg-surface-elevated)',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: 'var(--ss-radius-full)',
+                            background: isActive ? 'rgba(79, 70, 229, 0.15)' : '#f1f5f9',
                             color: isActive ? 'var(--ss-primary)' : 'var(--ss-text-muted)',
-                            border: '1px solid var(--ss-border)',
+                            border: isActive ? '1px solid var(--ss-primary-border)' : '1px solid var(--ss-border)',
                           }}
                         >
                           {item.badge}

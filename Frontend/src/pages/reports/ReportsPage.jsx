@@ -137,6 +137,7 @@ export const ReportsPage = ({ onNavigateTab }) => {
       </div>
 
       {/* Top 4 Summary Cards */}
+      {/* Overview Stat Cards */}
       <div
         style={{
           display: 'grid',
@@ -145,42 +146,78 @@ export const ReportsPage = ({ onNavigateTab }) => {
           marginBottom: 'var(--ss-space-5)',
         }}
       >
-        <div className="ss-card" style={{ borderLeft: '4px solid var(--ss-warning)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>ACTIVE REORDER ALERTS</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)' }}>
-            {alertProducts.length} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>SKUs flagged</span>
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-warning)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-warning-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Active Reorder Alerts
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)', marginTop: '0.25rem' }}>
+                {alertProducts.length} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>SKUs flagged</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-warning">
+              ⚠️
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', marginTop: '0.25rem' }}>
-            {metrics.criticalOutCount} Critical Out of Stock • {metrics.lowStockCount} Low
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            {metrics.criticalOutCount} Critical Stockouts • {metrics.lowStockCount} Low
           </div>
         </div>
 
-        <div className="ss-card" style={{ borderLeft: '4px solid var(--ss-success)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL ASSET VALUATION</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            ${totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total Asset Valuation
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)', marginTop: '0.25rem' }}>
+                ${totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              💰
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-success)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-success)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
             Across {products.length} SKU catalog lines
           </div>
         </div>
 
-        <div className="ss-card" style={{ borderLeft: '4px solid var(--ss-info)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>LEDGER AUDIT VOLUME</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-info-text)' }}>
-            {ledger.length} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>movements</span>
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-info)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-info-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Ledger Audit Volume
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-info-text)', marginTop: '0.25rem' }}>
+                {ledger.length} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>movements</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-info">
+              📋
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', marginTop: '0.25rem' }}>
-            {receiptCount} Receipts • {deliveryCount} Dispatches • {transferCount} Transfers
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            {receiptCount} Inbound • {deliveryCount} Outbound • {transferCount} Shifts
           </div>
         </div>
 
-        <div className="ss-card" style={{ borderLeft: '4px solid #8b5cf6' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>OPERATING FACILITIES</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: '#c084fc' }}>
-            {warehouses?.length || 3} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>Warehouses</span>
+        <div className="ss-stat-card" style={{ borderTop: '3px solid #7c3aed' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#7c3aed', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Operating Facilities
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: '#7c3aed', marginTop: '0.25rem' }}>
+                {warehouses?.length || 3} <span style={{ fontSize: '0.875rem', color: 'var(--ss-text-muted)' }}>Warehouses</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-violet">
+              🏢
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
             Active: {activeWarehouse?.code || 'WH-01'} ({activeWarehouse?.city || 'San Francisco'})
           </div>
         </div>
@@ -236,8 +273,8 @@ export const ReportsPage = ({ onNavigateTab }) => {
             padding: '0.75rem 1.25rem',
             background: 'none',
             border: 'none',
-            borderBottom: activeReportTab === 'MOVEMENT' ? '2px solid #8b5cf6' : '2px solid transparent',
-            color: activeReportTab === 'MOVEMENT' ? '#c084fc' : 'var(--ss-text-secondary)',
+            borderBottom: activeReportTab === 'MOVEMENT' ? '2px solid #7c3aed' : '2px solid transparent',
+            color: activeReportTab === 'MOVEMENT' ? '#7c3aed' : 'var(--ss-text-secondary)',
             fontWeight: 700,
             fontSize: '0.875rem',
             cursor: 'pointer',
@@ -482,8 +519,8 @@ export const ReportsPage = ({ onNavigateTab }) => {
                 </div>
               </div>
 
-              <div style={{ padding: '0.75rem', borderRadius: 'var(--ss-radius-md)', background: 'rgba(139, 92, 246, 0.1)', border: '1px solid #8b5cf6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.8125rem', color: '#c084fc' }}>
+              <div style={{ padding: '0.75rem', borderRadius: 'var(--ss-radius-md)', background: '#f5f3ff', border: '1px solid #ddd6fe' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '0.8125rem', color: '#6d28d9' }}>
                   <span>Internal Transfers (⇄)</span>
                   <span>{transferCount} Operations</span>
                 </div>

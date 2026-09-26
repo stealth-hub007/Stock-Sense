@@ -60,11 +60,11 @@ function MainAppShell() {
           )}
 
           {activeTab === 'receipts' && (
-            <ReceiptsPage />
+            <ReceiptsPage onNavigateTab={setActiveTab} />
           )}
 
           {activeTab === 'transfers' && (
-            <TransfersPage />
+            <TransfersPage onNavigateTab={setActiveTab} />
           )}
 
           {activeTab === 'deliveries' && (

@@ -149,12 +149,12 @@ export const WarehousePage = () => {
     const updatedBins = bins.map((b) =>
       b.id === selectedBin.id
         ? {
-            ...b,
-            sku: allocStatus === 'VACANT' ? null : prod.sku,
-            name: allocStatus === 'VACANT' ? 'Vacant Bin' : prod.name,
-            qty: allocStatus === 'VACANT' ? 0 : qty,
-            status: allocStatus,
-          }
+          ...b,
+          sku: allocStatus === 'VACANT' ? null : prod.sku,
+          name: allocStatus === 'VACANT' ? 'Vacant Bin' : prod.name,
+          qty: allocStatus === 'VACANT' ? 0 : qty,
+          status: allocStatus,
+        }
         : b
     );
 
@@ -274,47 +274,83 @@ export const WarehousePage = () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
           gap: 'var(--ss-space-4)',
           marginBottom: 'var(--ss-space-6)',
         }}
       >
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>FACILITY CAPACITY</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            1,500 Bins
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-primary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Facility Capacity
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)', marginTop: '0.25rem' }}>
+                1,500 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>bins</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-primary">
+              🏢
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
-            Across 16 High-Bay Aisles
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Across 16 high-bay aisles
           </div>
         </div>
 
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>CURRENT OCCUPANCY</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)' }}>
-            1,037 Bins (69.1%)
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-warning)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-warning-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Current Occupancy
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)', marginTop: '0.25rem' }}>
+                1,037 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>(69.1%)</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-warning">
+              📊
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
-            Zone C Dispatch at 91%
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Zone C dispatch at 91%
           </div>
         </div>
 
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>VACANT STORAGE SLOTS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
-            463 Bins Available
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Vacant Storage Slots
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
+                463 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>bins</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              ✅
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
             Immediate putaway capacity
           </div>
         </div>
 
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>ACTIVE DOCK DOORS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>
-            4 Docks Active
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-info)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-info-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Active Dock Doors
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)', marginTop: '0.25rem' }}>
+                4 <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>doors</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-info">
+              🚪
+            </div>
           </div>
-          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
             2 Inbound • 2 Outbound
           </div>
         </div>
@@ -351,14 +387,15 @@ export const WarehousePage = () => {
         </div>
 
         {/* 2D Interactive Blueprint Map */}
+        {/* 2D Interactive Blueprint Map — Light Theme */}
         <div
           style={{
-            background: '#070a10',
-            border: '2px solid var(--ss-border)',
+            background: 'var(--ss-bg-app)',
+            border: '1.5px solid var(--ss-border)',
             borderRadius: 'var(--ss-radius-lg)',
             padding: '1.25rem',
             display: 'grid',
-            gridTemplateColumns: '120px 1fr 140px',
+            gridTemplateColumns: '140px 1fr 155px',
             gap: '1rem',
             minHeight: '320px',
             position: 'relative',
@@ -370,60 +407,64 @@ export const WarehousePage = () => {
             style={{
               display: 'flex',
               flexDirection: 'column',
-              justifyContent: 'space-around',
-              background: 'rgba(16, 185, 129, 0.08)',
-              border: '1px dashed var(--ss-success-border)',
+              gap: '0.5rem',
+              background: 'var(--ss-success-bg)',
+              border: '1.5px dashed var(--ss-success-border)',
               borderRadius: 'var(--ss-radius-md)',
-              padding: '0.75rem 0.5rem',
+              padding: '0.875rem 0.625rem',
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: '0.625rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.05em' }}>
-              INBOUND DOCKS
+            <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              📥 Inbound Docks
             </div>
 
-            <div style={{ padding: '0.5rem', background: 'var(--ss-bg-surface)', borderRadius: '4px', border: '1px solid var(--ss-success-border)', fontSize: '0.6875rem' }}>
-              <strong style={{ color: 'var(--ss-success-text)' }}>Bay 01</strong>
-              <div style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>Docked (PO-9401)</div>
+            <div style={{ padding: '0.5rem 0.625rem', background: '#ffffff', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-success-border)' }}>
+              <strong style={{ fontSize: '0.75rem', color: 'var(--ss-success-text)', display: 'block' }}>Bay 01</strong>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>Docked · PO-9401</div>
             </div>
 
-            <div style={{ padding: '0.5rem', background: 'var(--ss-bg-surface)', borderRadius: '4px', border: '1px solid var(--ss-border)', fontSize: '0.6875rem' }}>
-              <strong style={{ color: 'var(--ss-text-primary)' }}>Bay 02</strong>
-              <div style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>Active (PO-9402)</div>
+            <div style={{ padding: '0.5rem 0.625rem', background: '#ffffff', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-primary-border)' }}>
+              <strong style={{ fontSize: '0.75rem', color: 'var(--ss-primary)', display: 'block' }}>Bay 02</strong>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>Active · PO-9402</div>
             </div>
 
-            <div style={{ padding: '0.5rem', background: 'var(--ss-bg-surface)', borderRadius: '4px', border: '1px solid var(--ss-border)', fontSize: '0.6875rem' }}>
-              <strong style={{ color: 'var(--ss-text-muted)' }}>Dock 03</strong>
-              <div style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>Vacant Intake</div>
+            <div style={{ padding: '0.5rem 0.625rem', background: '#ffffff', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-border)' }}>
+              <strong style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', display: 'block' }}>Dock 03</strong>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px' }}>Vacant · Ready</div>
             </div>
           </div>
 
           {/* MAIN WAREHOUSE CORE: Storage Zones A, B, D, Vault */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+
             {/* Zone A Block */}
             <div
               onClick={() => handleSelectZone(zones[0])}
               style={{
-                background: selectedZone.id === 'zone-a' ? 'rgba(59, 130, 246, 0.2)' : 'var(--ss-bg-surface)',
+                background: selectedZone.id === 'zone-a' ? 'var(--ss-primary-subtle)' : '#ffffff',
                 border: selectedZone.id === 'zone-a' ? '2px solid var(--ss-primary)' : '1px solid var(--ss-border)',
                 borderRadius: 'var(--ss-radius-md)',
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'all 180ms ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                position: 'relative',
+                boxShadow: selectedZone.id === 'zone-a' ? '0 0 0 3px rgba(79,70,229,0.12)' : 'var(--ss-shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--ss-text-primary)' }}>ZONE A (HIGH-BAY)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-text-primary)' }}>ZONE A</span>
                 <span className="ss-badge ss-badge-success">{zones[0].occupancy}%</span>
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', margin: '0.5rem 0' }}>
-                Aisles 01 - 06 • High-Torque Motors & Heavy Hardware
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.3rem' }}>
+                High-Bay Pallet Racks
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
+                Aisles 01–06 · Motors & Hardware
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)', marginTop: '0.35rem' }}>
                 {zones[0].capacity}
               </div>
             </div>
@@ -432,25 +473,29 @@ export const WarehousePage = () => {
             <div
               onClick={() => handleSelectZone(zones[1])}
               style={{
-                background: selectedZone.id === 'zone-b' ? 'rgba(59, 130, 246, 0.2)' : 'var(--ss-bg-surface)',
+                background: selectedZone.id === 'zone-b' ? 'var(--ss-primary-subtle)' : '#ffffff',
                 border: selectedZone.id === 'zone-b' ? '2px solid var(--ss-primary)' : '1px solid var(--ss-border)',
                 borderRadius: 'var(--ss-radius-md)',
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'all 180ms ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
+                boxShadow: selectedZone.id === 'zone-b' ? '0 0 0 3px rgba(79,70,229,0.12)' : 'var(--ss-shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--ss-text-primary)' }}>ZONE B (BULK BAY)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-text-primary)' }}>ZONE B</span>
                 <span className="ss-badge ss-badge-success">{zones[1].occupancy}%</span>
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', margin: '0.5rem 0' }}>
-                Aisles 07 - 12 • Pneumatics, Valves & DIN Supplies
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.3rem' }}>
+                Bulk Bay Storage
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
+                Aisles 07–12 · Pneumatics & Valves
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)', marginTop: '0.35rem' }}>
                 {zones[1].capacity}
               </div>
             </div>
@@ -459,25 +504,29 @@ export const WarehousePage = () => {
             <div
               onClick={() => handleSelectZone(zones[3])}
               style={{
-                background: selectedZone.id === 'zone-d' ? 'rgba(59, 130, 246, 0.2)' : 'var(--ss-bg-surface)',
+                background: selectedZone.id === 'zone-d' ? 'var(--ss-primary-subtle)' : '#ffffff',
                 border: selectedZone.id === 'zone-d' ? '2px solid var(--ss-primary)' : '1px solid var(--ss-border)',
                 borderRadius: 'var(--ss-radius-md)',
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'all 180ms ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
+                boxShadow: selectedZone.id === 'zone-d' ? '0 0 0 3px rgba(79,70,229,0.12)' : 'var(--ss-shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--ss-text-primary)' }}>ZONE D (RAW MATERIALS)</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-text-primary)' }}>ZONE D</span>
                 <span className="ss-badge ss-badge-neutral">{zones[3].occupancy}%</span>
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', margin: '0.5rem 0' }}>
-                Aisles 13 - 16 • High-Flex Cables & Spools
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.3rem' }}>
+                Raw Materials
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
+                Aisles 13–16 · Cables & Spools
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)', marginTop: '0.35rem' }}>
                 {zones[3].capacity}
               </div>
             </div>
@@ -486,25 +535,29 @@ export const WarehousePage = () => {
             <div
               onClick={() => handleSelectZone(zones[4])}
               style={{
-                background: selectedZone.id === 'zone-v' ? 'rgba(59, 130, 246, 0.2)' : 'var(--ss-bg-surface)',
-                border: selectedZone.id === 'zone-v' ? '2px solid var(--ss-primary)' : '1px solid rgba(245, 158, 11, 0.3)',
+                background: selectedZone.id === 'zone-v' ? 'var(--ss-primary-subtle)' : 'var(--ss-warning-bg)',
+                border: selectedZone.id === 'zone-v' ? '2px solid var(--ss-primary)' : '1.5px solid var(--ss-warning-border)',
                 borderRadius: 'var(--ss-radius-md)',
-                padding: '1rem',
+                padding: '0.875rem 1rem',
                 cursor: 'pointer',
-                transition: 'all 150ms ease',
+                transition: 'all 180ms ease',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
+                boxShadow: selectedZone.id === 'zone-v' ? '0 0 0 3px rgba(79,70,229,0.12)' : 'var(--ss-shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--ss-warning-text)' }}>🔒 SECURE VAULT</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <span style={{ fontWeight: 800, fontSize: '0.8125rem', color: 'var(--ss-warning-text)' }}>🔒 VAULT</span>
                 <span className="ss-badge ss-badge-warning">{zones[4].occupancy}%</span>
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', margin: '0.5rem 0' }}>
-                Chambers V01 - V04 • Modular PLCs, HMIs & Microchips
+              <div style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--ss-warning-text)', marginBottom: '0.3rem' }}>
+                Secure Storage
               </div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)' }}>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)' }}>
+                V01–V04 · PLCs, HMIs & Chips
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', fontFamily: 'var(--ss-font-mono)', marginTop: '0.35rem' }}>
                 {zones[4].capacity}
               </div>
             </div>
@@ -514,37 +567,39 @@ export const WarehousePage = () => {
           <div
             onClick={() => handleSelectZone(zones[2])}
             style={{
-              background: selectedZone.id === 'zone-c' ? 'rgba(59, 130, 246, 0.2)' : 'rgba(239, 68, 68, 0.08)',
-              border: selectedZone.id === 'zone-c' ? '2px solid var(--ss-primary)' : '1px dashed var(--ss-danger-border)',
+              background: selectedZone.id === 'zone-c' ? 'var(--ss-primary-subtle)' : 'var(--ss-danger-bg)',
+              border: selectedZone.id === 'zone-c' ? '2px solid var(--ss-primary)' : '1.5px dashed var(--ss-danger-border)',
               borderRadius: 'var(--ss-radius-md)',
-              padding: '0.75rem 0.5rem',
+              padding: '0.875rem 0.625rem',
               textAlign: 'center',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
               cursor: 'pointer',
+              gap: '0.5rem',
+              boxShadow: selectedZone.id === 'zone-c' ? '0 0 0 3px rgba(79,70,229,0.12)' : 'none',
             }}
           >
             <div>
-              <div style={{ fontSize: '0.625rem', fontWeight: 800, color: 'var(--ss-danger-text)', letterSpacing: '0.05em' }}>
-                ZONE C: DISPATCH
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-danger-text)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                📤 Zone C: Dispatch
               </div>
-              <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-warning-text)', marginTop: '4px' }}>
-                91% FULL
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--ss-warning-text)', marginTop: '4px' }}>
+                91% Full
               </div>
             </div>
 
-            <div style={{ padding: '0.4rem', background: 'var(--ss-bg-surface)', borderRadius: '4px', border: '1px solid var(--ss-border)', fontSize: '0.625rem' }}>
-              <strong style={{ color: 'var(--ss-info-text)' }}>Staging C01</strong>
-              <div style={{ color: 'var(--ss-text-muted)' }}>Tesla Order</div>
+            <div style={{ padding: '0.45rem 0.5rem', background: '#ffffff', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-info-border)' }}>
+              <strong style={{ fontSize: '0.75rem', color: 'var(--ss-info-text)', display: 'block' }}>Staging C01</strong>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>Tesla Order</div>
             </div>
 
-            <div style={{ padding: '0.4rem', background: 'var(--ss-bg-surface)', borderRadius: '4px', border: '1px solid var(--ss-border)', fontSize: '0.625rem' }}>
-              <strong style={{ color: 'var(--ss-info-text)' }}>Staging C02</strong>
-              <div style={{ color: 'var(--ss-text-muted)' }}>Boeing Order</div>
+            <div style={{ padding: '0.45rem 0.5rem', background: '#ffffff', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-info-border)' }}>
+              <strong style={{ fontSize: '0.75rem', color: 'var(--ss-info-text)', display: 'block' }}>Staging C02</strong>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>Boeing Order</div>
             </div>
 
-            <div style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-danger-text)' }}>
               Outbound Gates →
             </div>
           </div>
@@ -619,21 +674,21 @@ export const WarehousePage = () => {
                   border: isSelected
                     ? '2px solid var(--ss-border-focus)'
                     : isOccupied
-                    ? '1px solid var(--ss-success-border)'
-                    : isLow
-                    ? '1px solid var(--ss-warning-border)'
-                    : isReserved
-                    ? '1px solid var(--ss-info-border)'
-                    : '1px solid var(--ss-border)',
+                      ? '1px solid var(--ss-success-border)'
+                      : isLow
+                        ? '1px solid var(--ss-warning-border)'
+                        : isReserved
+                          ? '1px solid var(--ss-info-border)'
+                          : '1px solid var(--ss-border)',
                   background: isSelected
                     ? 'var(--ss-primary-subtle)'
                     : isOccupied
-                    ? 'rgba(16, 185, 129, 0.08)'
-                    : isLow
-                    ? 'rgba(245, 158, 11, 0.08)'
-                    : isReserved
-                    ? 'rgba(6, 182, 212, 0.08)'
-                    : 'var(--ss-bg-app)',
+                      ? 'rgba(16, 185, 129, 0.08)'
+                      : isLow
+                        ? 'rgba(245, 158, 11, 0.08)'
+                        : isReserved
+                          ? 'rgba(6, 182, 212, 0.08)'
+                          : 'var(--ss-bg-app)',
                   transition: 'all 150ms ease',
                   position: 'relative',
                 }}
@@ -836,8 +891,8 @@ export const WarehousePage = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -981,8 +1036,8 @@ export const WarehousePage = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

@@ -159,28 +159,79 @@ export const AdjustmentsPage = () => {
           marginBottom: 'var(--ss-space-5)',
         }}
       >
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL AUDIT CORRECTIONS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            {adjustments.length} Logged
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-primary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total Audit Corrections
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)', marginTop: '0.25rem' }}>
+                {adjustments.length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>logged</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-primary">
+              Δ
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Physical floor count reconciliations
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>DAMAGE & SCRAP WRITE-OFFS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-danger-text)' }}>
-            {adjustments.filter((a) => a.delta < 0).length} Discrepancies
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-danger)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-danger-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Damage & Scrap Write-Offs
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-danger-text)', marginTop: '0.25rem' }}>
+                {adjustments.filter((a) => a.delta < 0).length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>entries</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-danger">
+              📉
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Defects, breakages & shrink
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>FOUND UNRECORDED STOCK</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
-            {adjustments.filter((a) => a.delta > 0).length} Inflows
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Found Unrecorded Stock
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
+                {adjustments.filter((a) => a.delta > 0).length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>inflows</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              📈
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Physical overflow recovered
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>NET VARIANCE UNITS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)' }}>
-            {adjustments.reduce((acc, a) => acc + (a.delta || 0), 0)} Units Net
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-warning)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-warning-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Net Variance Units
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)', marginTop: '0.25rem' }}>
+                {adjustments.reduce((acc, a) => acc + (a.delta || 0), 0)} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>units</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-warning">
+              ⚖️
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Net discrepancy signed off
           </div>
         </div>
       </div>
@@ -364,8 +415,8 @@ export const AdjustmentsPage = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -524,8 +575,8 @@ export const AdjustmentsPage = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

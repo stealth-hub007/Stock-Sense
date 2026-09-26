@@ -232,21 +232,6 @@ export const InventoryProvider = ({ children }) => {
     setProducts((prev) => prev.filter((p) => p.id !== id && p.sku !== id));
   };
 
-  // Reorder Trigger helper
-  const triggerReorderPO = (sku, suggestedQty) => {
-    const prod = products.find((p) => p.sku === sku);
-    if (!prod) return;
-    const qty = suggestedQty || (prod.reorderRule?.maxStock ? Math.max(10, prod.reorderRule.maxStock - prod.onHand) : 50);
-    return addReceipt({
-      sku: prod.sku,
-      expectedQty: qty,
-      supplier: 'Industrial Supplier Co',
-      dock: 'Bay 01 - Receiving',
-      targetLocation: prod.primaryLocation,
-      carrier: 'Auto-Replenish Expedited',
-    });
-  };
-
   // =========================================================================
   // WAREHOUSES CRUD
   // =========================================================================
@@ -320,22 +305,57 @@ export const InventoryProvider = ({ children }) => {
     const newOnHand = targetProduct.onHand + qty;
     const newStatus = newOnHand > targetProduct.minThreshold ? 'IN_STOCK' : 'LOW_STOCK';
 
-    // Update product stock
+    // Update product stock and attach receiving location
     setProducts((prev) =>
-      prev.map((p) =>
-        p.sku === receipt.sku
-          ? { ...p, onHand: newOnHand, available: newOnHand - p.allocated, status: newStatus }
-          : p
-      )
+      prev.map((p) => {
+        if (p.sku !== receipt.sku) return p;
+        const locs = p.locations ? [...p.locations] : [];
+        const dockBin = receipt.dock || 'Bay 01 - Receiving';
+        const dockIdx = locs.findIndex((l) => l.bin === dockBin);
+        if (dockIdx >= 0) {
+          locs[dockIdx].qty += qty;
+        } else {
+          locs.push({ zone: 'Inbound Dock', bin: dockBin, qty });
+        }
+        return {
+          ...p,
+          onHand: newOnHand,
+          available: newOnHand - (p.allocated || 0),
+          status: newStatus,
+          locations: locs,
+        };
+      })
     );
 
     // Update receipt status
     setReceipts((prev) =>
       prev.map((r) =>
         r.poNumber === poNumber || r.id === poNumber
-          ? { ...r, status: 'RECEIVED', receivedAt: 'Just now', receivedBy: operatorName || 'Sarah Chen (Manager)' }
+          ? {
+              ...r,
+              status: 'RECEIVED',
+              receivedQty: qty,
+              receivedAt: 'Just now',
+              receivedBy: operatorName || 'Sarah Chen (Manager)',
+              readyForTransfer: true,
+            }
           : r
       )
+    );
+
+    // Auto-resolve any pending backorders / delivery orders waiting for this SKU
+    setDeliveries((prev) =>
+      prev.map((d) => {
+        if (d.sku === receipt.sku && d.status === 'AWAITING_STOCK') {
+          return {
+            ...d,
+            status: 'READY_TO_DISPATCH',
+            fulfilledByPo: receipt.poNumber,
+            note: `Stock replenished via Inbound PO ${receipt.poNumber}`,
+          };
+        }
+        return d;
+      })
     );
 
     // Append to ledger
@@ -349,12 +369,60 @@ export const InventoryProvider = ({ children }) => {
       qtyChange: +qty,
       balanceAfter: newOnHand,
       operator: operatorName || 'Sarah Chen (Manager)',
-      note: `Inbound PO arrival validated and put away`,
+      note: `Inbound PO arrival validated (+${qty} units at ${receipt.dock || 'Dock'})`,
     });
   };
 
+  // Auto-generate replenishment PO for a low-stock / out-of-stock SKU
+  const triggerReorderPO = (sku) => {
+    const prod = products.find((p) => p.sku === sku);
+    if (!prod) return null;
+
+    const reorderQty = prod.reorderRule
+      ? Math.max(
+          prod.reorderRule.maxStock - prod.onHand,
+          prod.reorderRule.minStock || 50
+        )
+      : Math.max(100 - prod.onHand, 50);
+
+    const poNumber = `PO-AUTO-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newPO = {
+      id: `rec-${Date.now().toString().slice(-4)}`,
+      poNumber,
+      supplier: 'Industrial Supplier Co',
+      sku: prod.sku,
+      productName: prod.name,
+      expectedQty: reorderQty,
+      dock: 'Bay 01 - Receiving',
+      targetLocation: prod.primaryLocation || 'Zone C (Rapid Dispatch)',
+      carrier: 'Priority Expedited Inflow',
+      eta: 'Expedited Priority Arrival',
+      status: 'PENDING',
+      createdAt: 'Just now',
+      autoTriggered: true,
+      triggerReason: `Auto-reorder: stock (${prod.onHand}) below threshold (${prod.minThreshold})`,
+    };
+
+    setReceipts((prev) => [newPO, ...prev]);
+
+    recordLedgerEntry({
+      type: 'RECEIPT',
+      reference: poNumber,
+      sku: prod.sku,
+      productName: prod.name,
+      source: 'Auto-Reorder Engine',
+      destination: prod.primaryLocation || 'Inbound Dock',
+      qtyChange: 0,
+      balanceAfter: prod.onHand,
+      operator: 'Auto-Reorder Engine',
+      note: `Auto-replenishment PO created for ${prod.sku} (${reorderQty} units ordered)`,
+    });
+
+    return newPO;
+  };
+
   // =========================================================================
-  // 3. INTERNAL TRANSFERS CRUD & EXECUTION
+  // 3. INTERNAL TRANSFERS CRUD & INTER-STORE SHIFTS
   // =========================================================================
   const addTransfer = (transferData) => {
     const prod = products.find((p) => p.sku === transferData.sku) || products[0];
@@ -366,10 +434,14 @@ export const InventoryProvider = ({ children }) => {
       qty: parseInt(transferData.qty, 10) || 10,
       fromLocation: transferData.fromLocation || prod.primaryLocation,
       toLocation: transferData.toLocation || 'Zone C (Rapid Dispatch)',
+      fromWarehouse: transferData.fromWarehouse || activeWarehouse?.name || 'WH-01 Main DC (Bay Area)',
+      toWarehouse: transferData.toWarehouse || activeWarehouse?.name || 'WH-01 Main DC (Bay Area)',
+      linkedPo: transferData.linkedPo || null,
       priority: transferData.priority || 'HIGH',
       reason: transferData.reason || 'Buffer replenishment',
-      status: 'SCHEDULED',
+      status: transferData.status || 'SCHEDULED',
       requestedBy: transferData.requestedBy || 'Sarah Chen (Manager)',
+      createdAt: 'Just now',
     };
     setTransfers((prev) => [newTransfer, ...prev]);
     return newTransfer;
@@ -402,20 +474,163 @@ export const InventoryProvider = ({ children }) => {
       )
     );
 
+    // Update product location quantities
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.sku !== transfer.sku) return p;
+        const locs = p.locations ? [...p.locations] : [];
+        const srcIdx = locs.findIndex((l) => l.bin === transfer.fromLocation);
+        if (srcIdx >= 0) {
+          locs[srcIdx].qty = Math.max(0, locs[srcIdx].qty - transfer.qty);
+        }
+        const destIdx = locs.findIndex((l) => l.bin === transfer.toLocation);
+        if (destIdx >= 0) {
+          locs[destIdx].qty += transfer.qty;
+        } else {
+          locs.push({
+            zone: transfer.toWarehouse || 'Relocated Stock',
+            bin: transfer.toLocation,
+            qty: transfer.qty,
+          });
+        }
+        return {
+          ...p,
+          primaryLocation: transfer.toLocation,
+          locations: locs,
+        };
+      })
+    );
+
+    // If linked to an Inbound PO, update the receipt with transfer confirmation
+    if (transfer.linkedPo) {
+      setReceipts((prev) =>
+        prev.map((r) =>
+          r.poNumber === transfer.linkedPo || r.id === transfer.linkedPo
+            ? {
+                ...r,
+                transferredTo: transfer.toLocation,
+                shiftedToWarehouse: transfer.toWarehouse,
+                transferNo: transfer.transferNo,
+              }
+            : r
+        )
+      );
+    }
+
     // Append to ledger
     recordLedgerEntry({
       type: 'TRANSFER',
       reference: transfer.transferNo,
       sku: transfer.sku,
       productName: transfer.productName,
-      source: transfer.fromLocation,
-      destination: transfer.toLocation,
+      source: `${transfer.fromLocation} (${transfer.fromWarehouse || 'Origin'})`,
+      destination: `${transfer.toLocation} (${transfer.toWarehouse || 'Destination'})`,
       qtyChange: transfer.qty,
       isRelocation: true,
       balanceAfter: targetProduct.onHand,
       operator: operatorName || 'Sarah Chen (Manager)',
-      note: `Relocated ${transfer.qty} units: ${transfer.fromLocation} → ${transfer.toLocation}`,
+      note: `Relocated ${transfer.qty} units: ${transfer.fromLocation} → ${transfer.toLocation} [${transfer.toWarehouse || 'Local'}]`,
     });
+  };
+
+  // 1-Click: Shift received Inbound PO directly to another store/warehouse or rack
+  const shiftReceiptToLocation = ({
+    poNumber,
+    sku,
+    qty,
+    fromLocation,
+    toLocation,
+    toWarehouse,
+    reason,
+    executeNow = true,
+  }) => {
+    // 1. Ensure receipt is acknowledged as received
+    const receipt = receipts.find((r) => r.poNumber === poNumber || r.id === poNumber);
+    if (receipt && receipt.status !== 'RECEIVED') {
+      confirmReceipt(poNumber, qty || receipt.expectedQty, 'Sarah Chen (Manager)');
+    }
+
+    const trNumber = `TR-${Math.floor(7000 + Math.random() * 2000)}`;
+    const prod =
+      products.find((p) => p.sku === sku) ||
+      (receipt ? products.find((p) => p.sku === receipt.sku) : products[0]);
+    const transferQty = parseInt(qty, 10) || receipt?.expectedQty || 15;
+    const sourceLoc = fromLocation || receipt?.dock || 'Bay 01 - Receiving';
+    const destLoc = toLocation || 'Rack A-02 (Storage)';
+    const targetStore = toWarehouse || 'WH-02 Midwest Regional Logistics Hub';
+
+    const newTransfer = {
+      id: `tr-${Date.now().toString().slice(-4)}`,
+      transferNo: trNumber,
+      sku: prod.sku,
+      productName: prod.name,
+      qty: transferQty,
+      fromLocation: sourceLoc,
+      toLocation: destLoc,
+      fromWarehouse: activeWarehouse?.name || 'WH-01 Main DC (Bay Area)',
+      toWarehouse: targetStore,
+      linkedPo: poNumber,
+      priority: 'HIGH',
+      reason: reason || `Inter-Store Shift from Inbound PO ${poNumber}`,
+      status: executeNow ? 'COMPLETED' : 'SCHEDULED',
+      completedAt: executeNow ? 'Just now' : null,
+      requestedBy: 'Sarah Chen (Manager)',
+      createdAt: 'Just now',
+    };
+
+    setTransfers((prev) => [newTransfer, ...prev]);
+
+    // Mark receipt as transferred to store
+    setReceipts((prev) =>
+      prev.map((r) =>
+        r.poNumber === poNumber || r.id === poNumber
+          ? {
+              ...r,
+              status: 'RECEIVED',
+              transferredTo: destLoc,
+              shiftedToWarehouse: targetStore,
+              transferNo: trNumber,
+            }
+          : r
+      )
+    );
+
+    // If executed now, update product locations and write to ledger
+    if (executeNow) {
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.sku !== prod.sku) return p;
+          const locs = p.locations ? [...p.locations] : [];
+          const destIdx = locs.findIndex((l) => l.bin === destLoc);
+          if (destIdx >= 0) {
+            locs[destIdx].qty += transferQty;
+          } else {
+            locs.push({ zone: targetStore, bin: destLoc, qty: transferQty });
+          }
+          return {
+            ...p,
+            primaryLocation: destLoc,
+            locations: locs,
+          };
+        })
+      );
+
+      recordLedgerEntry({
+        type: 'TRANSFER',
+        reference: trNumber,
+        sku: prod.sku,
+        productName: prod.name,
+        source: `${sourceLoc} (${activeWarehouse?.name || 'Origin'})`,
+        destination: `${destLoc} (${targetStore})`,
+        qtyChange: transferQty,
+        isRelocation: true,
+        balanceAfter: prod.onHand,
+        operator: 'Sarah Chen (Manager)',
+        note: `Inter-Store Shift: PO ${poNumber} (${transferQty} units) → ${destLoc} [${targetStore}]`,
+      });
+    }
+
+    return newTransfer;
   };
 
   // =========================================================================
@@ -423,18 +638,24 @@ export const InventoryProvider = ({ children }) => {
   // =========================================================================
   const addDelivery = (deliveryData) => {
     const prod = products.find((p) => p.sku === deliveryData.sku) || products[0];
+    const qty = parseInt(deliveryData.qty, 10) || 5;
+    const hasEnoughStock = (prod?.available ?? 0) >= qty;
+    const initialStatus = deliveryData.status || (hasEnoughStock ? 'READY_TO_DISPATCH' : 'AWAITING_STOCK');
+
     const newDelivery = {
       id: `del-${Date.now().toString().slice(-4)}`,
       orderNo: deliveryData.orderNo || `SO-${Math.floor(9000 + Math.random() * 1000)}`,
       customer: deliveryData.customer || 'Commercial Client Corp',
       sku: prod.sku,
       productName: prod.name,
-      qty: parseInt(deliveryData.qty, 10) || 5,
-      sourceLocation: deliveryData.sourceLocation || 'Zone C (Rapid Dispatch)',
+      qty,
+      sourceLocation: deliveryData.sourceLocation || prod.primaryLocation || 'Zone C (Rapid Dispatch)',
       carrier: deliveryData.carrier || 'FedEx Freight Priority',
       deadline: deliveryData.deadline || 'Today, EOD',
       destination: deliveryData.destination || 'Chicago, IL, USA',
-      status: 'READY_TO_DISPATCH',
+      status: initialStatus,
+      priority: deliveryData.priority || 'HIGH',
+      createdAt: 'Just now',
     };
     setDeliveries((prev) => [newDelivery, ...prev]);
     return newDelivery;
@@ -450,6 +671,79 @@ export const InventoryProvider = ({ children }) => {
     setDeliveries((prev) => prev.filter((d) => d.id !== id && d.orderNo !== id));
   };
 
+  // Stage-by-stage delivery progression
+  const advanceDeliveryStatus = (orderNo, targetStatus, operatorName) => {
+    const delivery = deliveries.find((d) => d.orderNo === orderNo || d.id === orderNo);
+    if (!delivery) return;
+
+    if (targetStatus === 'DISPATCHED') {
+      dispatchDelivery(orderNo, operatorName);
+      return;
+    }
+
+    if (targetStatus === 'DELIVERED') {
+      setDeliveries((prev) =>
+        prev.map((d) =>
+          d.orderNo === orderNo || d.id === orderNo
+            ? { ...d, status: 'DELIVERED', deliveredAt: 'Just now', deliveredBy: operatorName || 'Sarah Chen (Manager)' }
+            : d
+        )
+      );
+
+      const targetProduct = products.find((p) => p.sku === delivery.sku);
+      recordLedgerEntry({
+        type: 'DELIVERY',
+        reference: `PROOF-${delivery.orderNo}`,
+        sku: delivery.sku,
+        productName: delivery.productName,
+        source: delivery.carrier || 'Carrier Delivery Fleet',
+        destination: `Delivered to Customer: ${delivery.customer}`,
+        qtyChange: 0,
+        balanceAfter: targetProduct?.onHand || 0,
+        operator: operatorName || 'Sarah Chen (Manager)',
+        note: `Proof of Delivery (POD) confirmed for ${delivery.orderNo} at ${delivery.destination}`,
+      });
+      return;
+    }
+
+    if (targetStatus === 'ALLOCATED') {
+      // Allocate/reserve stock
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.sku !== delivery.sku) return p;
+          const newAllocated = (p.allocated || 0) + delivery.qty;
+          return {
+            ...p,
+            allocated: newAllocated,
+            available: Math.max(0, p.onHand - newAllocated),
+          };
+        })
+      );
+      setDeliveries((prev) =>
+        prev.map((d) =>
+          d.orderNo === orderNo || d.id === orderNo
+            ? { ...d, status: 'ALLOCATED', allocatedAt: 'Just now', allocatedBy: operatorName || 'Sarah Chen (Manager)' }
+            : d
+        )
+      );
+      return;
+    }
+
+    // Default status advance (e.g. PICKED, PACKED)
+    setDeliveries((prev) =>
+      prev.map((d) =>
+        d.orderNo === orderNo || d.id === orderNo
+          ? {
+              ...d,
+              status: targetStatus,
+              [`${targetStatus.toLowerCase()}At`]: 'Just now',
+              [`${targetStatus.toLowerCase()}By`]: operatorName || 'Sarah Chen (Manager)',
+            }
+          : d
+      )
+    );
+  };
+
   // Immediate causal stock decrement upon order dispatch
   const dispatchDelivery = (orderNo, operatorName) => {
     const delivery = deliveries.find((d) => d.orderNo === orderNo || d.id === orderNo);
@@ -458,14 +752,32 @@ export const InventoryProvider = ({ children }) => {
     const targetProduct = products.find((p) => p.sku === delivery.sku);
     if (!targetProduct) return;
 
+    const wasAllocated = delivery.status === 'ALLOCATED' || delivery.status === 'PACKED' || delivery.status === 'PICKED';
     const newOnHand = Math.max(0, targetProduct.onHand - delivery.qty);
+    const newAllocated = wasAllocated ? Math.max(0, (targetProduct.allocated || 0) - delivery.qty) : (targetProduct.allocated || 0);
+    const newAvailable = Math.max(0, newOnHand - newAllocated);
     const newStatus = newOnHand === 0 ? 'OUT_OF_STOCK' : newOnHand <= targetProduct.minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
+
+    // Update location quantities
+    const updatedLocations = (targetProduct.locations || []).map((loc) => {
+      if (loc.bin === delivery.sourceLocation || loc.zone.includes('Rapid Dispatch')) {
+        return { ...loc, qty: Math.max(0, loc.qty - delivery.qty) };
+      }
+      return loc;
+    });
 
     // Update product stock
     setProducts((prev) =>
       prev.map((p) =>
         p.sku === delivery.sku
-          ? { ...p, onHand: newOnHand, available: Math.max(0, newOnHand - p.allocated), status: newStatus }
+          ? {
+              ...p,
+              onHand: newOnHand,
+              allocated: newAllocated,
+              available: newAvailable,
+              status: newStatus,
+              locations: updatedLocations,
+            }
           : p
       )
     );
@@ -474,7 +786,12 @@ export const InventoryProvider = ({ children }) => {
     setDeliveries((prev) =>
       prev.map((d) =>
         d.orderNo === orderNo || d.id === orderNo
-          ? { ...d, status: 'DISPATCHED', dispatchedAt: 'Just now' }
+          ? {
+              ...d,
+              status: 'DISPATCHED',
+              dispatchedAt: 'Just now',
+              dispatchedBy: operatorName || 'Sarah Chen (Manager)',
+            }
           : d
       )
     );
@@ -486,11 +803,77 @@ export const InventoryProvider = ({ children }) => {
       sku: delivery.sku,
       productName: delivery.productName,
       source: delivery.sourceLocation || 'Zone C (Rapid Dispatch)',
-      destination: `Customer: ${delivery.customer}`,
+      destination: `Customer: ${delivery.customer} (${delivery.destination})`,
       qtyChange: -delivery.qty,
       balanceAfter: newOnHand,
       operator: operatorName || 'Sarah Chen (Manager)',
       note: `Outbound order ${delivery.orderNo} dispatched via ${delivery.carrier}`,
+    });
+  };
+
+  // 1-Click: Auto-generate Inbound PO to fulfill a backordered delivery
+  const triggerPOForDelivery = (orderNo) => {
+    const delivery = deliveries.find((d) => d.orderNo === orderNo || d.id === orderNo);
+    if (!delivery) return;
+
+    const targetProduct = products.find((p) => p.sku === delivery.sku);
+    const poQty = Math.max(delivery.qty * 2, 25);
+    const poNum = `PO-BACKORDER-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newPO = addReceipt({
+      poNumber: poNum,
+      supplier: 'Industrial Supplier Co',
+      sku: delivery.sku,
+      expectedQty: poQty,
+      dock: 'Bay 01 - Receiving',
+      targetLocation: targetProduct?.primaryLocation || 'Zone C (Rapid Dispatch)',
+      carrier: 'Priority Expedited Inflow',
+      eta: 'Expedited Priority Arrival',
+    });
+
+    setDeliveries((prev) =>
+      prev.map((d) =>
+        d.orderNo === orderNo || d.id === orderNo
+          ? { ...d, linkedPo: poNum, note: `Replenishment PO ${poNum} dispatched (+${poQty} units)` }
+          : d
+      )
+    );
+
+    return newPO;
+  };
+
+  // 1-Click: Quick Delivery creation from Product row
+  const createDeliveryFromProduct = ({ sku, qty, customer, destination, carrier }) => {
+    const prod = products.find((p) => p.sku === sku);
+    if (!prod) return;
+
+    return addDelivery({
+      orderNo: `SO-${Math.floor(9000 + Math.random() * 900)}`,
+      customer: customer || 'Priority Client Corp',
+      sku: prod.sku,
+      qty: parseInt(qty, 10) || 5,
+      sourceLocation: prod.primaryLocation || 'Zone C (Rapid Dispatch)',
+      carrier: carrier || 'FedEx Freight Priority',
+      destination: destination || 'Chicago, IL, USA',
+      deadline: 'Today, EOD',
+    });
+  };
+
+  // 1-Click: Quick Shift from Product row
+  const createTransferFromProduct = ({ sku, qty, fromLocation, toLocation, toWarehouse, reason }) => {
+    const prod = products.find((p) => p.sku === sku);
+    if (!prod) return;
+
+    return addTransfer({
+      transferNo: `TR-${Math.floor(7000 + Math.random() * 2000)}`,
+      sku: prod.sku,
+      qty: parseInt(qty, 10) || 10,
+      fromLocation: fromLocation || prod.primaryLocation,
+      toLocation: toLocation || 'Zone C (Rapid Dispatch)',
+      fromWarehouse: activeWarehouse?.name || 'WH-01 Main DC (Bay Area)',
+      toWarehouse: toWarehouse || 'WH-02 Midwest Regional Logistics Hub',
+      reason: reason || 'Inventory balancing from product master',
+      priority: 'HIGH',
     });
   };
 
@@ -619,12 +1002,17 @@ export const InventoryProvider = ({ children }) => {
         editTransfer,
         deleteTransfer,
         executeTransfer,
+        shiftReceiptToLocation,
 
         deliveries,
         addDelivery,
         editDelivery,
         deleteDelivery,
         dispatchDelivery,
+        advanceDeliveryStatus,
+        triggerPOForDelivery,
+        createDeliveryFromProduct,
+        createTransferFromProduct,
 
         adjustments,
         addAdjustment,

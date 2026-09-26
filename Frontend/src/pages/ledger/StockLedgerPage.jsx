@@ -193,28 +193,79 @@ export const StockLedgerPage = () => {
           marginBottom: 'var(--ss-space-5)',
         }}
       >
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL AUDIT EVENTS</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            {ledger.length} Logged
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-primary)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Total Audit Events
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)', marginTop: '0.25rem' }}>
+                {ledger.length} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>entries</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-primary">
+              📋
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Cryptographically logged
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>INBOUND RECEIPTS LOGGED</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
-            +{inboundUnitsLogged} Units
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Inbound Receipts Logged
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
+                +{inboundUnitsLogged} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>units</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              📥
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Reconciled dock arrivals
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>OUTBOUND DISPATCHES</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-danger-text)' }}>
-            -{outboundUnitsLogged} Units
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-danger)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-danger-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Outbound Dispatches
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-danger-text)', marginTop: '0.25rem' }}>
+                -{outboundUnitsLogged} <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>units</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-danger">
+              📤
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Shipped to clients
           </div>
         </div>
-        <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>AUDIT PARITY ACCURACY</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-info-text)' }}>
-            99.98% Synced
+
+        <div className="ss-stat-card" style={{ borderTop: '3px solid #059669' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                Audit Parity Accuracy
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
+                99.98% <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--ss-text-muted)' }}>synced</span>
+              </div>
+            </div>
+            <div className="ss-icon-avatar ss-icon-avatar-success">
+              🛡️
+            </div>
+          </div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-muted)', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border-subtle)' }}>
+            Zero drift detected
           </div>
         </div>
       </div>
@@ -223,9 +274,9 @@ export const StockLedgerPage = () => {
       <div
         className="ss-card"
         style={{
-          padding: '1rem 1.25rem',
+          padding: '1.25rem',
           marginBottom: 'var(--ss-space-4)',
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+          background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%)',
           border: '1px solid var(--ss-border)',
         }}
       >
@@ -347,7 +398,7 @@ export const StockLedgerPage = () => {
                       {isReceipt && <span className="ss-badge ss-badge-success">📥 RECEIPT</span>}
                       {isDelivery && <span className="ss-badge ss-badge-danger">📤 DELIVERY</span>}
                       {isTransfer && (
-                        <span className="ss-badge ss-badge-info" style={{ color: '#c084fc', borderColor: '#8b5cf6' }}>
+                        <span className="ss-badge ss-badge-violet">
                           ⇄ TRANSFER
                         </span>
                       )}
@@ -396,7 +447,7 @@ export const StockLedgerPage = () => {
                             : isDelivery
                             ? 'var(--ss-danger-text)'
                             : isTransfer
-                            ? '#c084fc'
+                            ? '#7c3aed'
                             : 'var(--ss-warning-text)',
                         }}
                       >
@@ -448,8 +499,8 @@ export const StockLedgerPage = () => {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(11, 15, 23, 0.8)',
-            backdropFilter: 'blur(4px)',
+            background: 'var(--ss-modal-backdrop)',
+            backdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

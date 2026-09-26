@@ -34,7 +34,9 @@ export const Header = ({ onResetData }) => {
     <header
       style={{
         height: '64px',
-        backgroundColor: 'var(--ss-bg-surface)',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderBottom: '1px solid var(--ss-border)',
         display: 'flex',
         alignItems: 'center',
@@ -43,6 +45,7 @@ export const Header = ({ onResetData }) => {
         position: 'sticky',
         top: 0,
         zIndex: 50,
+        boxShadow: '0 1px 3px 0 rgba(15, 23, 42, 0.03)',
       }}
     >
       {/* Brand & Facility Badge */}
@@ -53,7 +56,7 @@ export const Header = ({ onResetData }) => {
               width: '32px',
               height: '32px',
               borderRadius: 'var(--ss-radius-md)',
-              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              background: 'linear-gradient(135deg, #4f46e5 0%, #6366f1 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

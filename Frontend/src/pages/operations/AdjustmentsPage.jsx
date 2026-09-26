@@ -1,17 +1,28 @@
 import React, { useState } from 'react';
-import { INITIAL_ADJUSTMENTS, INITIAL_PRODUCTS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const AdjustmentsPage = () => {
-  const [adjustments, setAdjustments] = useState(INITIAL_ADJUSTMENTS);
+  const { adjustments, products, addAdjustment, editAdjustment, deleteAdjustment } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [reasonFilter, setReasonFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAdjustment, setEditingAdjustment] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
 
   // New adjustment form
-  const [selectedSku, setSelectedSku] = useState(INITIAL_PRODUCTS[0].sku);
+  const [selectedSku, setSelectedSku] = useState(products[0]?.sku || 'MTR-9002');
   const [deltaQty, setDeltaQty] = useState(-1);
   const [reasonCode, setReasonCode] = useState('Physical Damage / Forklift Snag');
+
+  // Edit adjustment form
+  const [editReason, setEditReason] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editOperator, setEditOperator] = useState('');
+
+  const showToast = (msg) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
 
   const filteredAdjustments = adjustments.filter((a) => {
     const matchesSearch =
@@ -25,29 +36,48 @@ export const AdjustmentsPage = () => {
 
   const handleCreateAdjustment = (e) => {
     e.preventDefault();
-    const prod = INITIAL_PRODUCTS.find((p) => p.sku === selectedSku) || INITIAL_PRODUCTS[0];
+    const prod = products.find((p) => p.sku === selectedSku) || products[0];
     const qty = parseInt(deltaQty, 10) || 0;
 
-    const newAdj = {
-      id: `adj-${Date.now().toString().slice(-4)}`,
-      adjNumber: `ADJ-${Math.floor(1000 + Math.random() * 9000)}`,
+    const newAdj = addAdjustment({
       sku: prod.sku,
-      productName: prod.name,
-      location: prod.primaryLocation,
-      systemQty: prod.onHand,
-      physicalQty: prod.onHand + qty,
       delta: qty,
       reason: reasonCode,
+      location: prod.primaryLocation,
       operator: 'Sarah Chen (Manager)',
       approvedBy: 'Sarah Chen (Manager)',
-      timestamp: 'Just now',
-      status: 'APPROVED',
-    };
+    });
 
-    setAdjustments([newAdj, ...adjustments]);
     setIsModalOpen(false);
-    setSuccessToast(`Adjustment ${newAdj.adjNumber} logged for ${newAdj.sku} (${qty > 0 ? '+' : ''}${qty} units). Ledger updated.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    showToast(`✓ Adjustment ${newAdj.adjNumber} logged for ${newAdj.sku} (${qty > 0 ? '+' : ''}${qty} units). Stock and ledger updated & saved!`);
+  };
+
+  const openEditModal = (a) => {
+    setEditingAdjustment(a);
+    setEditReason(a.reason);
+    setEditLocation(a.location);
+    setEditOperator(a.operator);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingAdjustment) return;
+
+    editAdjustment(editingAdjustment.id, {
+      reason: editReason,
+      location: editLocation,
+      operator: editOperator,
+    });
+
+    showToast(`✓ Adjustment ${editingAdjustment.adjNumber} updated and saved!`);
+    setEditingAdjustment(null);
+  };
+
+  const handleDeleteAdjustment = (a) => {
+    if (window.confirm(`Delete adjustment record ${a.adjNumber}? Note: For full audit compliance, adjustments are recorded in ledger.`)) {
+      deleteAdjustment(a.id);
+      showToast(`🗑 Adjustment record ${a.adjNumber} deleted.`);
+    }
   };
 
   return (
@@ -74,7 +104,7 @@ export const AdjustmentsPage = () => {
           <span style={{ color: 'var(--ss-warning-text)', fontSize: '1.25rem' }}>Δ</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--ss-warning-text)' }}>
-              Stock Adjustment Approved
+              Stock Adjustment Event
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
               {successToast}
@@ -100,6 +130,7 @@ export const AdjustmentsPage = () => {
               Cycle Count & Inventory Adjustments
             </h1>
             <span className="ss-badge ss-badge-warning">LIFECYCLE: STAGE 4 (ADJUST)</span>
+            <span className="ss-badge ss-badge-success">PERSISTED LOCALSTORAGE</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             Physical floor reconciliation, scrap logging, and discrepancy corrections with mandatory audit reasons.
@@ -109,7 +140,10 @@ export const AdjustmentsPage = () => {
         <button
           type="button"
           className="ss-btn ss-btn-primary"
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setSelectedSku(products[0]?.sku || 'MTR-9002');
+            setIsModalOpen(true);
+          }}
           style={{ background: 'var(--ss-warning)', color: '#000000', borderColor: 'var(--ss-warning-border)' }}
         >
           Δ Log Cycle Adjustment
@@ -146,7 +180,7 @@ export const AdjustmentsPage = () => {
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>NET VARIANCE UNITS</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-warning-text)' }}>
-            {adjustments.reduce((acc, a) => acc + a.delta, 0)} Units Net
+            {adjustments.reduce((acc, a) => acc + (a.delta || 0), 0)} Units Net
           </div>
         </div>
       </div>
@@ -185,6 +219,8 @@ export const AdjustmentsPage = () => {
             <option value="Damage">Physical Damage / Scrap</option>
             <option value="Found">Found Unrecorded</option>
             <option value="Cycle">Cycle Count Correction</option>
+            <option value="Quarantine">Defective Batch Quarantine</option>
+            <option value="Sample">Sample Pull for QA</option>
           </select>
         </div>
       </div>
@@ -203,6 +239,7 @@ export const AdjustmentsPage = () => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>VARIANCE DELTA</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>REASON CODE</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>APPROVAL</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -287,6 +324,32 @@ export const AdjustmentsPage = () => {
                         By {a.approvedBy}
                       </div>
                     </td>
+
+                    <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem' }}>
+                        {/* Edit Button */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-secondary"
+                          onClick={() => openEditModal(a)}
+                          title="Edit Adjustment"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                        >
+                          ✎
+                        </button>
+
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-ghost"
+                          onClick={() => handleDeleteAdjustment(a)}
+                          title="Delete Adjustment Record"
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.45rem', color: 'var(--ss-danger)' }}
+                        >
+                          🗑
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -326,7 +389,7 @@ export const AdjustmentsPage = () => {
                   Log Inventory Cycle Count / Adjustment
                 </h3>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
-                  Reconcile physical counts with double-entry variance justification.
+                  Reconcile physical counts with double-entry variance justification (Saves to localStorage).
                 </p>
               </div>
               <button
@@ -349,7 +412,7 @@ export const AdjustmentsPage = () => {
                   value={selectedSku}
                   onChange={(e) => setSelectedSku(e.target.value)}
                 >
-                  {INITIAL_PRODUCTS.map((p) => (
+                  {products.map((p) => (
                     <option key={p.sku} value={p.sku}>
                       {p.sku} — {p.name} (Current: {p.onHand} units in {p.primaryLocation})
                     </option>
@@ -397,7 +460,7 @@ export const AdjustmentsPage = () => {
                   color: 'var(--ss-warning-text)',
                 }}
               >
-                <strong>Audit Requirement:</strong> All variance deltas write an unalterable signed event to the Stock Ledger.
+                <strong>Audit Requirement:</strong> All variance deltas write an unalterable signed event to the Stock Ledger and adjust on-hand inventory.
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -414,6 +477,107 @@ export const AdjustmentsPage = () => {
                   style={{ background: 'var(--ss-warning)', color: '#000000', borderColor: 'var(--ss-warning-border)' }}
                 >
                   Authorize & Sign Adjustment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Adjustment Modal */}
+      {editingAdjustment && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Edit Adjustment ({editingAdjustment.adjNumber})
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Update location or reason justification note.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setEditingAdjustment(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Reason Code / Audit Justification
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Storage Bin / Location
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Auditing Operator
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editOperator}
+                  onChange={(e) => setEditOperator(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setEditingAdjustment(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save Changes
                 </button>
               </div>
             </form>

@@ -1,14 +1,31 @@
 import React, { useState } from 'react';
-import { INITIAL_SETTINGS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const SettingsPage = ({ onResetData }) => {
-  const [settings, setSettings] = useState(INITIAL_SETTINGS);
+  const { settings, setSettings, resetAllData } = useInventory();
+  const [formData, setFormData] = useState(settings);
   const [savedToast, setSavedToast] = useState(null);
+
+  const showToast = (msg) => {
+    setSavedToast(msg);
+    setTimeout(() => setSavedToast(null), 4000);
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
-    setSavedToast('Operational configuration saved successfully.');
-    setTimeout(() => setSavedToast(null), 4000);
+    setSettings(formData);
+    showToast('✓ Operational configuration saved and persisted to localStorage.');
+  };
+
+  const handleResetConfirmation = () => {
+    if (window.confirm('Are you sure you want to reset all inventory records, orders, transfers, and ledger entries back to pristine demo baseline? This clears all local storage.')) {
+      if (onResetData) {
+        onResetData();
+      } else {
+        resetAllData();
+      }
+      showToast('↺ Demo data reset to pristine baseline!');
+    }
   };
 
   return (
@@ -51,6 +68,7 @@ export const SettingsPage = ({ onResetData }) => {
             System Settings & Warehouse Governance
           </h1>
           <span className="ss-badge ss-badge-info">CONFIGURATION</span>
+          <span className="ss-badge ss-badge-success">PERSISTED LOCALSTORAGE</span>
         </div>
         <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
           Operational safety thresholds, ledger audit retention, and facility dock parameters.
@@ -75,8 +93,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="text"
                 className="ss-input"
-                value={settings.facilityName}
-                onChange={(e) => setSettings({ ...settings, facilityName: e.target.value })}
+                value={formData.facilityName || ''}
+                onChange={(e) => setFormData({ ...formData, facilityName: e.target.value })}
               />
             </div>
             <div>
@@ -86,8 +104,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="text"
                 className="ss-input"
-                value={settings.facilityCode}
-                onChange={(e) => setSettings({ ...settings, facilityCode: e.target.value })}
+                value={formData.facilityCode || ''}
+                onChange={(e) => setFormData({ ...formData, facilityCode: e.target.value })}
               />
             </div>
           </div>
@@ -110,8 +128,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="text"
                 className="ss-input"
-                value={settings.defaultReceivingBay}
-                onChange={(e) => setSettings({ ...settings, defaultReceivingBay: e.target.value })}
+                value={formData.defaultReceivingBay || ''}
+                onChange={(e) => setFormData({ ...formData, defaultReceivingBay: e.target.value })}
               />
             </div>
             <div>
@@ -121,8 +139,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="text"
                 className="ss-input"
-                value={settings.defaultDispatchDock}
-                onChange={(e) => setSettings({ ...settings, defaultDispatchDock: e.target.value })}
+                value={formData.defaultDispatchDock || ''}
+                onChange={(e) => setFormData({ ...formData, defaultDispatchDock: e.target.value })}
               />
             </div>
           </div>
@@ -135,8 +153,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="number"
                 className="ss-input"
-                value={settings.lowStockThresholdPct}
-                onChange={(e) => setSettings({ ...settings, lowStockThresholdPct: e.target.value })}
+                value={formData.lowStockThresholdPct || 20}
+                onChange={(e) => setFormData({ ...formData, lowStockThresholdPct: parseInt(e.target.value, 10) || 20 })}
               />
             </div>
             <div>
@@ -146,8 +164,8 @@ export const SettingsPage = ({ onResetData }) => {
               <input
                 type="number"
                 className="ss-input"
-                value={settings.criticalThresholdUnits}
-                onChange={(e) => setSettings({ ...settings, criticalThresholdUnits: e.target.value })}
+                value={formData.criticalThresholdUnits || 10}
+                onChange={(e) => setFormData({ ...formData, criticalThresholdUnits: parseInt(e.target.value, 10) || 10 })}
               />
             </div>
           </div>
@@ -187,7 +205,7 @@ export const SettingsPage = ({ onResetData }) => {
           <button
             type="button"
             className="ss-btn ss-btn-secondary"
-            onClick={onResetData}
+            onClick={handleResetConfirmation}
             style={{ fontSize: '0.8125rem' }}
           >
             ↺ Reset Demo Data to Initial Baseline

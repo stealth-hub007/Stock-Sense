@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useInventory } from '../../context/InventoryContext';
 import { INITIAL_ZONES, INITIAL_PRODUCTS } from '../../services/mockData';
 
 // Realistic bin matrix generator for interactive warehouse racks
@@ -59,12 +60,35 @@ const GENERATE_BINS = (zoneId) => {
 };
 
 export const WarehousePage = () => {
-  const [zones, setZones] = useState(INITIAL_ZONES);
-  const [selectedZone, setSelectedZone] = useState(zones[0]);
-  const [bins, setBins] = useState(GENERATE_BINS(zones[0].id));
+  const { zones, setZones, products } = useInventory();
+  const [selectedZone, setSelectedZone] = useState(() => (zones && zones.length > 0 ? zones[0] : INITIAL_ZONES[0]));
+  const [bins, setBins] = useState(() => GENERATE_BINS(selectedZone?.id || 'zone-a'));
   const [selectedBin, setSelectedBin] = useState(null);
   const [skuSearch, setSkuSearch] = useState('');
   const [binFilter, setBinFilter] = useState('ALL'); // 'ALL' | 'OCCUPIED' | 'VACANT'
+
+  // Modals & Feedback
+  const [isAddZoneModalOpen, setIsAddZoneModalOpen] = useState(false);
+  const [isAllocateBinModalOpen, setIsAllocateBinModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  // New Zone form
+  const [newZoneCode, setNewZoneCode] = useState('');
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneAisles, setNewZoneAisles] = useState('Aisles 17-20');
+  const [newZoneTemp, setNewZoneTemp] = useState('20.5°C Ambient');
+  const [newZoneCapacity, setNewZoneCapacity] = useState('120 Bins');
+  const [newZoneItems, setNewZoneItems] = useState('Buffer Inventory');
+
+  // Bin Allocation form
+  const [allocSku, setAllocSku] = useState(products[0]?.sku || 'MTR-9002');
+  const [allocQty, setAllocQty] = useState(25);
+  const [allocStatus, setAllocStatus] = useState('OCCUPIED');
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   // When zone changes, load its bin matrix
   const handleSelectZone = (zone) => {

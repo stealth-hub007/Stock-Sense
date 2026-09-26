@@ -44,7 +44,13 @@ export const AuthProvider = ({ children }) => {
     const saved = localStorage.getItem('stocksense_operator');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Block pending/suspended users from auto-logging in
+        if (parsed?.status === 'PENDING_APPROVAL' || parsed?.status === 'SUSPENDED') {
+          localStorage.removeItem('stocksense_operator');
+          return null;
+        }
+        return parsed;
       } catch (e) {
         // fallback
       }
@@ -58,6 +64,38 @@ export const AuthProvider = ({ children }) => {
     name: 'Main Distribution Center (Bay Area)',
     status: 'ONLINE',
   });
+
+  // Track the active panel view: 'admin' | 'manager' | 'staff'
+  const [activePanel, setActivePanelState] = useState(() => {
+    const saved = localStorage.getItem('stocksense_active_panel');
+    if (saved) return saved;
+    const userSaved = localStorage.getItem('stocksense_operator');
+    if (userSaved) {
+      try {
+        const u = JSON.parse(userSaved);
+        if (u.role === ROLES.ADMIN) return 'admin';
+        if (u.role === ROLES.WAREHOUSE_STAFF) return 'staff';
+        return 'manager';
+      } catch (e) {}
+    }
+    return 'manager';
+  });
+
+  const switchPanel = (targetPanel) => {
+    const userRole = currentUser?.assignedRole || currentUser?.role;
+    // Authorization checks:
+    // 1. Admin panel: ONLY ADMIN
+    if (targetPanel === 'admin' && userRole !== ROLES.ADMIN) {
+      return;
+    }
+    // 2. Manager panel: ADMIN or INVENTORY_MANAGER
+    if (targetPanel === 'manager' && userRole !== ROLES.ADMIN && userRole !== ROLES.INVENTORY_MANAGER) {
+      return;
+    }
+    // 3. Staff floor: ADMIN, INVENTORY_MANAGER, or WAREHOUSE_STAFF
+    setActivePanelState(targetPanel);
+    localStorage.setItem('stocksense_active_panel', targetPanel);
+  };
 
   // Keep localStorage in sync
   useEffect(() => {
@@ -198,13 +236,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   const loginUserSession = (userObj) => {
-    setCurrentUser(userObj);
-    localStorage.setItem('stocksense_operator', JSON.stringify(userObj));
-    return userObj;
+    const role = userObj?.role || ROLES.WAREHOUSE_STAFF;
+    const initialPanel = role === ROLES.ADMIN ? 'admin' : (role === ROLES.INVENTORY_MANAGER ? 'manager' : 'staff');
+    const enriched = {
+      ...userObj,
+      assignedRole: userObj.assignedRole || role,
+      role: role,
+    };
+    setCurrentUser(enriched);
+    setActivePanelState(initialPanel);
+    localStorage.setItem('stocksense_operator', JSON.stringify(enriched));
+    localStorage.setItem('stocksense_active_panel', initialPanel);
+    return enriched;
   };
 
   const logout = () => {
     localStorage.removeItem('stocksense_operator');
+    localStorage.removeItem('stocksense_active_panel');
     setCurrentUser(null);
   };
 
@@ -213,6 +261,8 @@ export const AuthProvider = ({ children }) => {
       value={{
         user: currentUser,
         role: currentUser?.role || null,
+        activePanel,
+        switchPanel,
         isAuthenticated: !!currentUser,
         permissions,
         can,

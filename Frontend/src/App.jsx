@@ -47,23 +47,7 @@ import AdminProfilePage from './pages/admin/AdminProfilePage';
 // Authentication Pages
 import AuthPage from './pages/auth/AuthPage';
 
-/**
- * Read which panel is active from the URL path or hash.
- * /staff or #/staff => 'staff'
- * /admin or #/admin => 'admin'
- * /manager or #/manager (or default) => 'manager'
- */
-function getPanelFromUrl() {
-  const path = window.location.pathname.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
-  if (path.includes('/staff') || hash.includes('staff')) {
-    return 'staff';
-  }
-  if (path.includes('/admin') || hash.includes('admin')) {
-    return 'admin';
-  }
-  return 'manager';
-}
+// Panel is controlled by React state only — URL stays as localhost:5173
 
 // =========================================================================
 // INVENTORY MANAGER PANEL
@@ -71,7 +55,6 @@ function getPanelFromUrl() {
 function ManagerPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -88,13 +71,6 @@ function ManagerPanel() {
       default: return 1;
     }
   };
-
-  // Sync role to INVENTORY_MANAGER when this panel is active
-  useEffect(() => {
-    if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.INVENTORY_MANAGER) {
-      switchRole(ROLES.INVENTORY_MANAGER);
-    }
-  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
@@ -129,19 +105,11 @@ function ManagerPanel() {
 function StaffPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
     setActiveTab('dashboard');
   };
-
-  // Sync role to WAREHOUSE_STAFF when this panel is active
-  useEffect(() => {
-    if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.WAREHOUSE_STAFF) {
-      switchRole(ROLES.WAREHOUSE_STAFF);
-    }
-  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
@@ -169,19 +137,11 @@ function StaffPanel() {
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
     setActiveTab('dashboard');
   };
-
-  // Sync role to ADMIN when this panel is active
-  useEffect(() => {
-    if (user?.role !== ROLES.ADMIN) {
-      switchRole(ROLES.ADMIN);
-    }
-  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
@@ -205,68 +165,32 @@ function AdminPanel() {
 }
 
 // =========================================================================
-// ROOT ROUTER — AUTHENTICATED GATEWAY (DEFAULT INITIAL SCREEN: LOGIN)
+// ROOT ROUTER — pure state-based, URL always stays as localhost:5173
 // =========================================================================
 function RootApp() {
-  const { user, isAuthenticated } = useAuth();
-  const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
-
-  // Listen for URL changes (both hash and pathname history)
-  useEffect(() => {
-    const handleUrlChange = () => setCurrentPanel(getPanelFromUrl());
-    window.addEventListener('hashchange', handleUrlChange);
-    window.addEventListener('popstate', handleUrlChange);
-    return () => {
-      window.removeEventListener('hashchange', handleUrlChange);
-      window.removeEventListener('popstate', handleUrlChange);
-    };
-  }, []);
-
-  // When user signs in, sync panel to their role
-  useEffect(() => {
-    if (user?.role) {
-      if (user.role === ROLES.ADMIN) {
-        setCurrentPanel('admin');
-        window.location.hash = '#/admin';
-      } else if (user.role === ROLES.WAREHOUSE_STAFF) {
-        setCurrentPanel('staff');
-        window.location.hash = '#/staff';
-      } else {
-        setCurrentPanel('manager');
-        window.location.hash = '#/manager';
-      }
-    }
-  }, [user?.id, user?.role]);
+  const { user, isAuthenticated, activePanel } = useAuth();
 
   // Show Login / Register when not authenticated
   if (!isAuthenticated || !user) {
-    return (
-      <AuthPage
-        onLoginSuccess={(loggedInUser) => {
-          // After successful login, route based on role
-          if (loggedInUser?.role === ROLES.ADMIN) {
-            setCurrentPanel('admin');
-            window.location.hash = '#/admin';
-          } else if (loggedInUser?.role === ROLES.WAREHOUSE_STAFF) {
-            setCurrentPanel('staff');
-            window.location.hash = '#/staff';
-          } else {
-            setCurrentPanel('manager');
-            window.location.hash = '#/manager';
-          }
-        }}
-      />
-    );
+    return <AuthPage />;
   }
 
-  if (currentPanel === 'staff') {
-    return <StaffPanel />;
-  }
+  const userRole = user?.assignedRole || user?.role;
 
-  if (currentPanel === 'admin') {
+  // Authorization checks
+  if (activePanel === 'admin' && userRole === ROLES.ADMIN) {
     return <AdminPanel />;
   }
+  if (activePanel === 'staff' || userRole === ROLES.WAREHOUSE_STAFF) {
+    return <StaffPanel />;
+  }
+  if (activePanel === 'manager' && (userRole === ROLES.ADMIN || userRole === ROLES.INVENTORY_MANAGER)) {
+    return <ManagerPanel />;
+  }
 
+  // Fallback defaults
+  if (userRole === ROLES.ADMIN) return <AdminPanel />;
+  if (userRole === ROLES.WAREHOUSE_STAFF) return <StaffPanel />;
   return <ManagerPanel />;
 }
 

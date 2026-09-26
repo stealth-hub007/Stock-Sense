@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../context/InventoryContext';
 import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
 export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false, onNavigateTab }) => {
-  const { user, role, switchRole, logout } = useAuth();
+  const { user, role, activePanel, switchPanel, logout } = useAuth();
   const {
     warehouses,
     activeWarehouse,
@@ -24,9 +24,20 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
   const warehouseMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
 
-  const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
-  const isAdmin = isAdminPanel || role === ROLES.ADMIN;
-  const isStaff = isStaffPanel || role === ROLES.WAREHOUSE_STAFF;
+  const userRole = user?.assignedRole || user?.role || role;
+  const isUserAdmin = userRole === ROLES.ADMIN;
+  const isUserManager = userRole === ROLES.INVENTORY_MANAGER;
+  const isUserStaff = userRole === ROLES.WAREHOUSE_STAFF;
+
+  // Authorization rule:
+  // - Admin: sees Manager, Staff Floor, Admin (3 panels)
+  // - Manager: sees Manager, Staff Floor (2 panels)
+  // - Staff: sees NO panel switcher (restricted strictly to Staff Floor)
+  const canSwitchPanel = isUserAdmin || isUserManager;
+
+  const badgeStyle = ROLE_BADGE_STYLES[userRole] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
+  const isAdmin = isAdminPanel || userRole === ROLES.ADMIN;
+  const isStaff = isStaffPanel || userRole === ROLES.WAREHOUSE_STAFF;
 
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
   const hasUrgentApproval = (notifications || []).some(
@@ -199,10 +210,10 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
 
 
 
-      {/* Right Controls: Panel Switcher (Manager/Admin Only) & Operator Profile */}
+      {/* Right Controls: Panel Switcher & Operator Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ss-space-4)' }}>
-        {/* Interactive Panel Switcher — STRICTLY HIDDEN ON STAFF FLOOR PANEL */}
-        {!isStaff && (
+        {/* Interactive Panel Switcher — STRICTLY HIDDEN FOR STAFF */}
+        {canSwitchPanel && (
           <div
             style={{
               display: 'flex',
@@ -224,7 +235,7 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
                 paddingLeft: '0.25rem',
               }}
             >
-              Panel:
+              PANEL:
             </span>
 
             <div
@@ -237,66 +248,64 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
                 padding: '2px',
               }}
             >
+              {/* Manager Panel — Visible to Manager & Admin */}
               <button
                 type="button"
-                onClick={() => {
-                  switchRole(ROLES.INVENTORY_MANAGER);
-                  window.location.hash = '#/manager';
-                }}
+                onClick={() => switchPanel('manager')}
                 style={{
                   padding: '0.25rem 0.6rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   borderRadius: 'var(--ss-radius-xs)',
                   border: 'none',
-                  background: !isAdminPanel && !isStaffPanel ? 'var(--ss-primary)' : 'transparent',
-                  color: !isAdminPanel && !isStaffPanel ? '#ffffff' : 'var(--ss-text-secondary)',
+                  background: (activePanel === 'manager' || (!isAdminPanel && !isStaffPanel)) ? 'var(--ss-primary)' : 'transparent',
+                  color: (activePanel === 'manager' || (!isAdminPanel && !isStaffPanel)) ? '#ffffff' : 'var(--ss-text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 150ms ease',
                 }}
               >
                 Manager
               </button>
+
+              {/* Staff Floor Panel — Visible to Manager & Admin */}
               <button
                 type="button"
-                onClick={() => {
-                  switchRole(ROLES.WAREHOUSE_STAFF);
-                  window.location.hash = '#/staff';
-                }}
+                onClick={() => switchPanel('staff')}
                 style={{
                   padding: '0.25rem 0.6rem',
                   fontSize: '0.75rem',
                   fontWeight: 600,
                   borderRadius: 'var(--ss-radius-xs)',
                   border: 'none',
-                  background: isStaffPanel ? 'var(--ss-success)' : 'transparent',
-                  color: isStaffPanel ? '#ffffff' : 'var(--ss-text-secondary)',
+                  background: (activePanel === 'staff' || isStaffPanel) ? 'var(--ss-success)' : 'transparent',
+                  color: (activePanel === 'staff' || isStaffPanel) ? '#ffffff' : 'var(--ss-text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 150ms ease',
                 }}
               >
                 Staff Floor
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  switchRole(ROLES.ADMIN);
-                  window.location.hash = '#/admin';
-                }}
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: isAdminPanel ? 'var(--ss-warning)' : 'transparent',
-                  color: isAdminPanel ? '#000000' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Admin
-              </button>
+
+              {/* Admin Panel — ONLY VISIBLE TO ADMIN */}
+              {isUserAdmin && (
+                <button
+                  type="button"
+                  onClick={() => switchPanel('admin')}
+                  style={{
+                    padding: '0.25rem 0.6rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    borderRadius: 'var(--ss-radius-xs)',
+                    border: 'none',
+                    background: (activePanel === 'admin' || isAdminPanel) ? 'var(--ss-warning)' : 'transparent',
+                    color: (activePanel === 'admin' || isAdminPanel) ? '#000000' : 'var(--ss-text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 150ms ease',
+                  }}
+                >
+                  Admin
+                </button>
+              )}
             </div>
           </div>
         )}

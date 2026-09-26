@@ -238,16 +238,16 @@ function RootApp() {
     }
   }, [user?.id, user?.role]);
 
-  // FLOW REQUIREMENT: INITIAL SCREEN IS THE LOGIN/REGISTER PAGE
+  // Show Login / Register when not authenticated
   if (!isAuthenticated || !user) {
     return (
       <AuthPage
-        initialTab="LOGIN"
         onLoginSuccess={(loggedInUser) => {
-          if (loggedInUser.role === ROLES.ADMIN) {
+          // After successful login, route based on role
+          if (loggedInUser?.role === ROLES.ADMIN) {
             setCurrentPanel('admin');
             window.location.hash = '#/admin';
-          } else if (loggedInUser.role === ROLES.WAREHOUSE_STAFF) {
+          } else if (loggedInUser?.role === ROLES.WAREHOUSE_STAFF) {
             setCurrentPanel('staff');
             window.location.hash = '#/staff';
           } else {

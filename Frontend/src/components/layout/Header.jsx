@@ -61,8 +61,8 @@ export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => 
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 var(--ss-space-6)',
-        position: 'sticky',
-        top: 0,
+        flexShrink: 0,
+        
         zIndex: 50,
         boxShadow: '0 1px 3px 0 rgba(15, 23, 42, 0.03)',
       }}

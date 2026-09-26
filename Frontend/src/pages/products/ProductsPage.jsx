@@ -325,13 +325,29 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
 
         <div className="ss-stat-card" style={{ borderTop: '3px solid var(--ss-success)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--ss-success-text)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Total Catalog Value
               </div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem' }}>
-                ${products.reduce((acc, p) => acc + (p.onHand || 0) * (p.unitCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </div>
+              {(() => {
+                const total = products.reduce((acc, p) => acc + (p.onHand || 0) * (p.unitCost || 0), 0);
+                const compact = total >= 1_000_000
+                  ? `$${(total / 1_000_000).toFixed(2)}M`
+                  : total >= 1_000
+                  ? `$${(total / 1_000).toFixed(1)}K`
+                  : `$${total.toFixed(2)}`;
+                const full = `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                return (
+                  <>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)', marginTop: '0.25rem', lineHeight: 1.2 }}>
+                      {compact}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-muted)', marginTop: '2px' }}>
+                      {full}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             <div className="ss-icon-avatar ss-icon-avatar-success">
               💰
@@ -539,77 +555,90 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
 
                     {/* RICH ACTION BUTTONS: Ship, Shift, Reorder, Edit, Delete */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'nowrap', alignItems: 'center' }}>
                         {/* Quick Delivery Order */}
-                        {!isOut && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-primary"
-                            onClick={() => handleOpenDeliverModal(p)}
-                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem' }}
-                            title="Create Delivery Order from this product"
-                          >
-                            📤 Ship
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-primary"
+                          onClick={() => !isOut && handleOpenDeliverModal(p)}
+                          disabled={isOut}
+                          style={{
+                            fontSize: '0.6875rem',
+                            padding: '0.25rem 0.55rem',
+                            opacity: isOut ? 0.4 : 1,
+                            cursor: isOut ? 'not-allowed' : 'pointer'
+                          }}
+                          title={isOut ? "Cannot ship out of stock product" : "Create Delivery Order from this product"}
+                        >
+                          📤 Ship
+                        </button>
 
                         {/* Quick Shift to another location */}
-                        {!isOut && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-secondary"
-                            onClick={() => handleOpenShiftModal(p)}
-                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
-                            title="Shift stock to another bin or warehouse"
-                          >
-                            ⇄ Shift
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-secondary"
+                          onClick={() => !isOut && handleOpenShiftModal(p)}
+                          disabled={isOut}
+                          style={{
+                            fontSize: '0.6875rem',
+                            padding: '0.25rem 0.45rem',
+                            opacity: isOut ? 0.4 : 1,
+                            cursor: isOut ? 'not-allowed' : 'pointer'
+                          }}
+                          title={isOut ? "Cannot shift out of stock product" : "Shift stock to another bin or warehouse"}
+                        >
+                          ⇄ Shift
+                        </button>
 
-                        {/* Auto Reorder PO for low/out of stock */}
-                        {(isLow || isOut) && (
-                          <button
-                            type="button"
-                            onClick={() => handleAutoReorder(p)}
-                            style={{
-                              fontSize: '0.6875rem',
-                              padding: '0.25rem 0.5rem',
-                              background: 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              borderRadius: 'var(--ss-radius-sm)',
-                              cursor: 'pointer',
-                              color: 'var(--ss-danger)',
-                              fontWeight: 700,
-                            }}
-                            title="Auto-generate replenishment Purchase Order"
-                          >
-                            ⚡ PO
-                          </button>
-                        )}
+                        {/* Auto Reorder PO */}
+                        <button
+                          type="button"
+                          onClick={() => (isLow || isOut) && handleAutoReorder(p)}
+                          disabled={!(isLow || isOut)}
+                          style={{
+                            fontSize: '0.6875rem',
+                            padding: '0.25rem 0.5rem',
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            borderRadius: 'var(--ss-radius-sm)',
+                            color: 'var(--ss-danger)',
+                            fontWeight: 700,
+                            opacity: !(isLow || isOut) ? 0.4 : 1,
+                            cursor: !(isLow || isOut) ? 'not-allowed' : 'pointer'
+                          }}
+                          title={!(isLow || isOut) ? "Stock is adequate" : "Auto-generate replenishment Purchase Order"}
+                        >
+                          ⚡ PO
+                        </button>
 
                         {/* Edit Product */}
                         <button
                           type="button"
                           className="ss-btn ss-btn-secondary"
                           onClick={() => openEditModal(p)}
-                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem', cursor: 'pointer' }}
                           title="Edit Product Details"
                         >
                           ✏️
                         </button>
 
                         {/* Delete Product */}
-                        {isManager && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-ghost"
-                            onClick={() => handleDeleteProduct(p)}
-                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem', color: 'var(--ss-danger)' }}
-                            title="Delete Product from Catalog"
-                          >
-                            🗑
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-ghost"
+                          onClick={() => isManager && handleDeleteProduct(p)}
+                          disabled={!isManager}
+                          style={{
+                            fontSize: '0.6875rem',
+                            padding: '0.25rem 0.45rem',
+                            color: 'var(--ss-danger)',
+                            opacity: !isManager ? 0.4 : 1,
+                            cursor: !isManager ? 'not-allowed' : 'pointer'
+                          }}
+                          title={!isManager ? "Manager access required" : "Delete Product from Catalog"}
+                        >
+                          🗑
+                        </button>
                       </div>
                     </td>
                   </tr>

@@ -441,37 +441,41 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
 
                     {/* CRUD ACTION BUTTONS */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                        {isReady ? (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-primary"
-                            onClick={() => handleReceiveShipment(r.poNumber, r.sku, r.expectedQty)}
-                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                          >
-                            Receive →
-                          </button>
-                        ) : null}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-primary"
+                          onClick={() => isReady && handleReceiveShipment(r.poNumber, r.sku, r.expectedQty)}
+                          disabled={!isReady}
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.5rem',
+                            opacity: !isReady ? 0.4 : 1,
+                            cursor: !isReady ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          Receive →
+                        </button>
 
-                        {isReceived && (
-                          <button
-                            type="button"
-                            className="ss-btn"
-                            style={{
-                              fontSize: '0.75rem',
-                              padding: '0.25rem 0.55rem',
-                              backgroundColor: '#f5f3ff',
-                              border: '1px solid #c4b5fd',
-                              color: '#6d28d9',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                            onClick={() => openShiftModal(r)}
-                            title="Shift this received shipment to another warehouse/store or rack"
-                          >
-                            ⇄ Shift to Store
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          className="ss-btn"
+                          onClick={() => isReceived && openShiftModal(r)}
+                          disabled={!isReceived}
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.25rem 0.55rem',
+                            backgroundColor: '#f5f3ff',
+                            border: '1px solid #c4b5fd',
+                            color: '#6d28d9',
+                            fontWeight: 600,
+                            opacity: !isReceived ? 0.4 : 1,
+                            cursor: !isReceived ? 'not-allowed' : 'pointer',
+                          }}
+                          title={isReceived ? "Shift this received shipment to another warehouse/store or rack" : "Shipment must be received first"}
+                        >
+                          ⇄ Shift to Store
+                        </button>
 
                         <button
                           type="button"

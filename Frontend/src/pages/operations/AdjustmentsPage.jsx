@@ -504,35 +504,38 @@ export const AdjustmentsPage = () => {
                     </td>
 
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem' }}>
-                        {a.status === 'PENDING_APPROVAL' && (
-                          <>
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-primary"
-                              onClick={() => {
-                                approveAdjustment(a.id, 'Sarah Chen (Manager)');
-                                showToast(`✓ Discrepancy for ${a.sku} approved! Stock and ledger synchronized.`);
-                              }}
-                              title="Approve Discrepancy & Sync Ledger"
-                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', backgroundColor: 'var(--ss-success)', borderColor: 'var(--ss-success)' }}
-                            >
-                              ✓ Approve
-                            </button>
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-ghost"
-                              onClick={() => {
-                                rejectAdjustment(a.id, 'Sarah Chen (Manager)', 'Discrepancy count rejected by manager');
-                                showToast(`✕ Discrepancy for ${a.sku} rejected.`);
-                              }}
-                              title="Reject Discrepancy"
-                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--ss-danger)' }}
-                            >
-                              ✕
-                            </button>
-                          </>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem', flexWrap: 'nowrap' }}>
+                        {/* ✓ Approve */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-primary"
+                          onClick={() => {
+                            if (a.status !== 'PENDING_APPROVAL') return;
+                            approveAdjustment(a.id, 'Sarah Chen (Manager)');
+                            showToast(`✓ Discrepancy for ${a.sku} approved! Stock and ledger synchronized.`);
+                          }}
+                          disabled={a.status !== 'PENDING_APPROVAL'}
+                          title={a.status === 'PENDING_APPROVAL' ? 'Approve Discrepancy & Sync Ledger' : 'No pending approval'}
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', backgroundColor: 'var(--ss-success)', borderColor: 'var(--ss-success)', opacity: a.status !== 'PENDING_APPROVAL' ? 0.35 : 1, cursor: a.status !== 'PENDING_APPROVAL' ? 'not-allowed' : 'pointer' }}
+                        >
+                          ✓ Approve
+                        </button>
+
+                        {/* ✕ Reject */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-ghost"
+                          onClick={() => {
+                            if (a.status !== 'PENDING_APPROVAL') return;
+                            rejectAdjustment(a.id, 'Sarah Chen (Manager)', 'Discrepancy count rejected by manager');
+                            showToast(`✕ Discrepancy for ${a.sku} rejected.`);
+                          }}
+                          disabled={a.status !== 'PENDING_APPROVAL'}
+                          title={a.status === 'PENDING_APPROVAL' ? 'Reject Discrepancy' : 'No pending approval'}
+                          style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--ss-danger)', opacity: a.status !== 'PENDING_APPROVAL' ? 0.35 : 1, cursor: a.status !== 'PENDING_APPROVAL' ? 'not-allowed' : 'pointer' }}
+                        >
+                          ✕ Reject
+                        </button>
 
                         {/* Edit Button */}
                         <button
@@ -542,7 +545,7 @@ export const AdjustmentsPage = () => {
                           title="Edit Adjustment"
                           style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
                         >
-                          ✎
+                          ✎ Edit
                         </button>
 
                         {/* Delete Button */}

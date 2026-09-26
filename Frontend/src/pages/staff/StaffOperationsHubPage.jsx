@@ -903,43 +903,35 @@ export const StaffOperationsHubPage = ({ onNavigateTab }) => {
 
                         {/* 4. Action / Status Slot (Fixed Width 74px) */}
                         <div style={{ width: '74px', display: 'flex', justifyContent: 'center' }}>
-                          {rec.isPending ? (
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-primary"
-                              onClick={() => handleQuickExecute(rec)}
-                              title="Execute operational action"
-                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '100%', justifyContent: 'center', fontWeight: 700 }}
-                            >
-                              {rec.entityType === 'RECEIPT'
-                                ? 'Receive'
-                                : rec.entityType === 'DELIVERY'
-                                ? rec.status === 'PICKED'
-                                  ? 'Pack'
-                                  : 'Pick'
-                                : rec.entityType === 'TRANSFER'
-                                ? 'Transfer'
-                                : 'Review'}
-                            </button>
-                          ) : (
-                            <span
-                              style={{
-                                fontSize: '0.6875rem',
-                                fontWeight: 600,
-                                color: 'var(--ss-text-muted)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0.25rem 0.4rem',
-                                borderRadius: 'var(--ss-radius-sm)',
-                                backgroundColor: 'var(--ss-bg-app)',
-                                width: '100%',
-                                border: '1px solid var(--ss-border-subtle)',
-                              }}
-                            >
-                              ✓ Done
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-primary"
+                            onClick={() => rec.isPending && handleQuickExecute(rec)}
+                            disabled={!rec.isPending}
+                            title={rec.isPending ? 'Execute operational action' : '✓ Already completed'}
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '0.25rem 0.5rem',
+                              width: '100%',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              opacity: !rec.isPending ? 0.4 : 1,
+                              cursor: !rec.isPending ? 'not-allowed' : 'pointer',
+                              background: !rec.isPending ? 'var(--ss-bg-surface-hover)' : undefined,
+                              color: !rec.isPending ? 'var(--ss-text-muted)' : undefined,
+                              borderColor: !rec.isPending ? 'var(--ss-border)' : undefined,
+                            }}
+                          >
+                            {rec.isPending
+                              ? (rec.entityType === 'RECEIPT'
+                                  ? 'Receive'
+                                  : rec.entityType === 'DELIVERY'
+                                  ? rec.status === 'PICKED' ? 'Pack' : 'Pick'
+                                  : rec.entityType === 'TRANSFER'
+                                  ? 'Transfer'
+                                  : 'Review')
+                              : '✓ Done'}
+                          </button>
                         </div>
                       </div>
                     </td>

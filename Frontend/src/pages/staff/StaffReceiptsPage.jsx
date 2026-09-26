@@ -395,36 +395,29 @@ export const StaffReceiptsPage = () => {
                           🗑️
                         </button>
 
-                        {/* Slot 4: 84px Fixed Width for Receive Button or Done Badge */}
+                        {/* Slot 4: 84px Fixed Width for Receive Button */}
                         <div style={{ width: '84px', display: 'flex', justifyContent: 'center' }}>
-                          {isPending ? (
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-primary"
-                              onClick={() => openReceiveModal(r)}
-                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', width: '100%', justifyContent: 'center', fontWeight: 700 }}
-                            >
-                              Receive →
-                            </button>
-                          ) : (
-                            <span
-                              style={{
-                                fontSize: '0.6875rem',
-                                fontWeight: 600,
-                                color: 'var(--ss-text-muted)',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                padding: '0.25rem 0.4rem',
-                                borderRadius: 'var(--ss-radius-sm)',
-                                backgroundColor: 'var(--ss-bg-app)',
-                                width: '100%',
-                                border: '1px solid var(--ss-border-subtle)',
-                              }}
-                            >
-                              ✓ Done
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-primary"
+                            onClick={() => isPending && openReceiveModal(r)}
+                            disabled={!isPending}
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '0.25rem 0.5rem',
+                              width: '100%',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              opacity: !isPending ? 0.4 : 1,
+                              cursor: !isPending ? 'not-allowed' : 'pointer',
+                              background: !isPending ? 'var(--ss-bg-surface-hover)' : undefined,
+                              color: !isPending ? 'var(--ss-text-muted)' : undefined,
+                              borderColor: !isPending ? 'var(--ss-border)' : undefined,
+                            }}
+                            title={isPending ? 'Mark shipment received' : '✓ Already received'}
+                          >
+                            {isPending ? 'Receive →' : '✓ Done'}
+                          </button>
                         </div>
                       </div>
                     </td>

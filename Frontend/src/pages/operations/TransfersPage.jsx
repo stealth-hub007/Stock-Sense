@@ -594,17 +594,17 @@ export const TransfersPage = ({ onNavigateTab }) => {
 
                       {/* CRUD ACTIONS */}
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
-                          {isScheduled ? (
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-secondary"
-                              onClick={() => handleCompleteTransfer(t.transferNo, t.sku, t.qty, t.toLocation)}
-                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderColor: '#c4b5fd', color: '#6d28d9', background: '#f5f3ff' }}
-                            >
-                              Confirm Move →
-                            </button>
-                          ) : null}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-secondary"
+                            onClick={() => isScheduled && handleCompleteTransfer(t.transferNo, t.sku, t.qty, t.toLocation)}
+                            disabled={!isScheduled}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderColor: '#c4b5fd', color: '#6d28d9', background: '#f5f3ff', opacity: !isScheduled ? 0.35 : 1, cursor: !isScheduled ? 'not-allowed' : 'pointer' }}
+                            title={isScheduled ? 'Confirm this stock move and update ledger' : 'Transfer already completed or cancelled'}
+                          >
+                            Confirm Move →
+                          </button>
 
                           <button
                             type="button"

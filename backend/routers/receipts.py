@@ -63,19 +63,50 @@ async def list_receipts(skip: int = 0, limit: int = 50, db: AsyncSession = Depen
 
     return enriched
 
-@router.post("/create")
-async def create():
-    return {"create": "Not implemented"}
 
-@router.post("/add_products")
-async def add_products():
-    return {"add_products": "Not implemented"}
-
-@router.post("/validate")
-async def validate():
-    return {"validate": "Not implemented"}
-
-@router.post("/increase_stock")
-async def increase_stock():
-    return {"increase_stock": "Not implemented"}
-
+from fastapi import HTTPException
+@router.post("/{receipt_id}/receive")
+async def receive_receipt(receipt_id: int, db: AsyncSession = Depends(get_db)):
+    # 1. Get receipt
+    res = await db.execute(select(models.Receipt).where(models.Receipt.id == receipt_id))
+    receipt = res.scalars().first()
+    if not receipt:
+        raise HTTPException(status_code=404, detail="Receipt not found")
+    
+    if receipt.status.upper() == 'VALIDATED':
+        return {"status": "Already received"}
+        
+    receipt.status = 'Validated'
+    
+    # 2. Get items
+    item_res = await db.execute(select(models.ReceiptItem).where(models.ReceiptItem.receipt_id == receipt_id))
+    items = item_res.scalars().all()
+    
+    loc_res = await db.execute(select(models.Location).limit(1))
+    loc = loc_res.scalars().first()
+    
+    for item in items:
+        # Ledger entry
+        ledger = models.StockLedger(
+            product_id=item.product_id,
+            location_id=loc.id if loc else 1,
+            operation_type="RECEIPT",
+            quantity=item.quantity,
+            reference_id=f"PO-{receipt.id}"
+        )
+        db.add(ledger)
+        
+        # Balance update
+        bal_res = await db.execute(select(models.StockBalance).where(
+            models.StockBalance.product_id == item.product_id,
+            models.StockBalance.location_id == (loc.id if loc else 1)
+        ))
+        balance = bal_res.scalars().first()
+        if balance:
+            balance.quantity += item.quantity
+        else:
+            new_bal = models.StockBalance(product_id=item.product_id, location_id=loc.id if loc else 1, quantity=item.quantity)
+            db.add(new_bal)
+            
+    await db.commit()
+    return {"status": "success"}

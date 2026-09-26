@@ -86,28 +86,30 @@ function ManagerPanel() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
       <Header onResetData={handleResetData} isStaffPanel={false} onNavigateTab={(tab) => navigate(`/${tab}`)} />
-      <DemoStepper
-        currentStep={getStepNumberForTab(location.pathname)}
-        onStepClick={(tab) => navigate(`/${tab}`)}
-      />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <Sidebar activeTab={location.pathname.replace('/', '') || 'dashboard'} onSelectTab={(tab) => navigate(`/${tab === 'dashboard' ? '' : tab}`)} />
-        <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
-          <Routes>
-            <Route path="/" element={<InventoryManagerDashboard onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
-            <Route path="/products" element={<ProductsPage onQuickReceive={() => navigate('/receipts')} onQuickTransfer={() => navigate('/transfers')} />} />
-            <Route path="/receipts" element={<ReceiptsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
-            <Route path="/transfers" element={<TransfersPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
-            <Route path="/deliveries" element={<DeliveriesPage />} />
-            <Route path="/adjustments" element={<AdjustmentsPage />} />
-            <Route path="/ledger" element={<StockLedgerPage />} />
-            <Route path="/reports" element={<ReportsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
-            <Route path="/warehouse" element={<WarehousePage />} />
-            <Route path="/warehouses" element={<WarehousePage />} />
-            <Route path="/settings" element={<SettingsPage onResetData={handleResetData} />} />
-            <Route path="/users" element={<SettingsPage onResetData={handleResetData} />} />
-          </Routes>
-        </main>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+          <DemoStepper
+            currentStep={getStepNumberForTab(location.pathname)}
+            onStepClick={(tab) => navigate(`/${tab}`)}
+          />
+          <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
+            <Routes>
+              <Route path="/" element={<InventoryManagerDashboard onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+              <Route path="/products" element={<ProductsPage onQuickReceive={() => navigate('/receipts')} onQuickTransfer={() => navigate('/transfers')} />} />
+              <Route path="/receipts" element={<ReceiptsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+              <Route path="/transfers" element={<TransfersPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+              <Route path="/deliveries" element={<DeliveriesPage />} />
+              <Route path="/adjustments" element={<AdjustmentsPage />} />
+              <Route path="/ledger" element={<StockLedgerPage />} />
+              <Route path="/reports" element={<ReportsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+              <Route path="/warehouse" element={<WarehousePage />} />
+              <Route path="/warehouses" element={<WarehousePage />} />
+              <Route path="/settings" element={<SettingsPage onResetData={handleResetData} />} />
+              <Route path="/users" element={<SettingsPage onResetData={handleResetData} />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </div>
   );

@@ -19,6 +19,9 @@ export const DemoStepper = ({ currentStep = 1, onStepClick }) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         boxShadow: 'var(--ss-shadow-sm)',
+        flexShrink: 0,
+        zIndex: 45,
+        position: 'relative',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>

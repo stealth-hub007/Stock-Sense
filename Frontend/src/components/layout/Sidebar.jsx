@@ -28,10 +28,7 @@ export const Sidebar = () => {
         flexDirection: 'column',
         justifyContent: 'space-between',
         flexShrink: 0,
-        position: 'sticky',
-        top: '110px',
-        height: 'calc(100vh - 110px)',
-        alignSelf: 'flex-start',
+        height: '100%',
         zIndex: 40,
         overflow: 'hidden',
       }}

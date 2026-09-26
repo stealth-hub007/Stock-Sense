@@ -535,75 +535,54 @@ export const DeliveriesPage = ({ onNavigateTab }) => {
 
                     {/* Operations & Dispatch Buttons */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'wrap' }}>
-                        {/* If Awaiting Stock -> Auto Generate Replenishment PO */}
-                        {isAwaiting && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-primary"
-                            onClick={() => handleAutoReplenish(d.orderNo, d.sku)}
-                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem', background: 'var(--ss-warning)', color: '#000' }}
-                            title="Auto-generate priority Inbound PO to replenish this backorder"
-                          >
-                            ⚡ Order PO Replenish
-                          </button>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                        {/* ⚡ PO Replenish — only active when awaiting stock */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-primary"
+                          onClick={() => isAwaiting && handleAutoReplenish(d.orderNo, d.sku)}
+                          disabled={!isAwaiting}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.5rem', background: 'var(--ss-warning)', color: '#000', opacity: !isAwaiting ? 0.35 : 1, cursor: !isAwaiting ? 'not-allowed' : 'pointer' }}
+                          title={isAwaiting ? 'Auto-generate priority Inbound PO' : 'Not awaiting stock'}
+                        >
+                          ⚡ PO
+                        </button>
 
-                        {/* If Ready to Dispatch -> Direct Dispatch or Pick & Pack */}
-                        {(isReady || isAllocated) && (
-                          <>
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-secondary"
-                              onClick={() => handleAdvanceStatus(d.orderNo, 'PACKED')}
-                              style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
-                              title="Mark order picked and packed at dock"
-                            >
-                              📦 Pack
-                            </button>
-                            <button
-                              type="button"
-                              className="ss-btn ss-btn-primary"
-                              onClick={() => handleDispatchOrder(d.orderNo, d.sku, d.qty, d.customer)}
-                              style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem' }}
-                              title="Dispatch to carrier and deduct from stock ledger"
-                            >
-                              Dispatch 🚚
-                            </button>
-                          </>
-                        )}
+                        {/* 📦 Pack — only active when ready or allocated */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-secondary"
+                          onClick={() => (isReady || isAllocated) && handleAdvanceStatus(d.orderNo, 'PACKED')}
+                          disabled={!(isReady || isAllocated)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem', opacity: !(isReady || isAllocated) ? 0.35 : 1, cursor: !(isReady || isAllocated) ? 'not-allowed' : 'pointer' }}
+                          title={(isReady || isAllocated) ? 'Mark order picked and packed at dock' : 'Order not ready to pack'}
+                        >
+                          📦 Pack
+                        </button>
 
-                        {/* If Packed -> Dispatch */}
-                        {isPacked && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-primary"
-                            onClick={() => handleDispatchOrder(d.orderNo, d.sku, d.qty, d.customer)}
-                            style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem' }}
-                          >
-                            Release to Carrier 🚚
-                          </button>
-                        )}
+                        {/* 🚚 Dispatch — active when ready, allocated, or packed */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-primary"
+                          onClick={() => (isReady || isAllocated || isPacked) && handleDispatchOrder(d.orderNo, d.sku, d.qty, d.customer)}
+                          disabled={!(isReady || isAllocated || isPacked)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem', opacity: !(isReady || isAllocated || isPacked) ? 0.35 : 1, cursor: !(isReady || isAllocated || isPacked) ? 'not-allowed' : 'pointer' }}
+                          title={(isReady || isAllocated || isPacked) ? 'Dispatch to carrier and deduct from stock ledger' : 'Order not ready to dispatch'}
+                        >
+                          Dispatch 🚚
+                        </button>
 
-                        {/* If Dispatched -> Confirm Final Delivery */}
-                        {isDispatched && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-secondary"
-                            onClick={() => handleConfirmDelivered(d.orderNo, d.customer)}
-                            style={{
-                              fontSize: '0.6875rem',
-                              padding: '0.25rem 0.55rem',
-                              background: 'rgba(34, 197, 94, 0.1)',
-                              border: '1px solid rgba(34, 197, 94, 0.3)',
-                              color: 'var(--ss-success)',
-                              fontWeight: 700,
-                            }}
-                            title="Confirm Proof of Delivery at customer destination"
-                          >
-                            Confirm Delivery ✓
-                          </button>
-                        )}
+                        {/* ✓ Confirm Delivery — only active when dispatched */}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-secondary"
+                          onClick={() => isDispatched && handleConfirmDelivered(d.orderNo, d.customer)}
+                          disabled={!isDispatched}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.55rem', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: 'var(--ss-success)', fontWeight: 700, opacity: !isDispatched ? 0.35 : 1, cursor: !isDispatched ? 'not-allowed' : 'pointer' }}
+                          title={isDispatched ? 'Confirm Proof of Delivery at customer destination' : 'Order not yet dispatched'}
+                        >
+                          Confirm ✓
+                        </button>
 
                         {/* Inspect Audit Flow Modal */}
                         <button

@@ -96,10 +96,7 @@ export const StaffSidebar = ({ activeTab, onSelectTab }) => {
         flexDirection: 'column',
         justifyContent: 'space-between',
         flexShrink: 0,
-        position: 'sticky',
-        top: '64px',
-        height: 'calc(100vh - 64px)',
-        alignSelf: 'flex-start',
+        height: '100%',
         zIndex: 40,
         overflow: 'hidden',
       }}

@@ -57,23 +57,47 @@ async def list_deliveries(skip: int = 0, limit: int = 50, db: AsyncSession = Dep
 
     return enriched
 
-@router.post("/create")
-async def create():
-    return {"create": "Not implemented"}
 
-@router.post("/pick")
-async def pick():
-    return {"pick": "Not implemented"}
-
-@router.post("/pack")
-async def pack():
-    return {"pack": "Not implemented"}
-
-@router.post("/validate")
-async def validate():
-    return {"validate": "Not implemented"}
-
-@router.post("/decrease_stock")
-async def decrease_stock():
-    return {"decrease_stock": "Not implemented"}
-
+from fastapi import HTTPException
+@router.post("/{delivery_id}/advance")
+async def advance_delivery(delivery_id: int, db: AsyncSession = Depends(get_db)):
+    res = await db.execute(select(models.Delivery).where(models.Delivery.id == delivery_id))
+    delivery = res.scalars().first()
+    if not delivery:
+        raise HTTPException(status_code=404, detail="Delivery not found")
+        
+    current = delivery.status.upper()
+    next_status = "Packed" if current == "DRAFT" else "Shipped" if current == "PACKED" else None
+    
+    if not next_status:
+        return {"status": "Already shipped"}
+        
+    delivery.status = next_status
+    
+    # If it's being shipped, deduct from ledger
+    if next_status == "Shipped":
+        item_res = await db.execute(select(models.DeliveryItem).where(models.DeliveryItem.delivery_id == delivery_id))
+        items = item_res.scalars().all()
+        loc_res = await db.execute(select(models.Location).limit(1))
+        loc = loc_res.scalars().first()
+        
+        for item in items:
+            ledger = models.StockLedger(
+                product_id=item.product_id,
+                location_id=loc.id if loc else 1,
+                operation_type="DELIVERY",
+                quantity=-item.quantity,
+                reference_id=f"SO-{delivery.id}"
+            )
+            db.add(ledger)
+            
+            bal_res = await db.execute(select(models.StockBalance).where(
+                models.StockBalance.product_id == item.product_id,
+                models.StockBalance.location_id == (loc.id if loc else 1)
+            ))
+            balance = bal_res.scalars().first()
+            if balance:
+                balance.quantity -= item.quantity
+                
+    await db.commit()
+    return {"status": "success", "new_status": next_status}

@@ -86,17 +86,11 @@ export const InventoryProvider = ({ children }) => {
     loadFromStorage(STORAGE_KEYS.LEDGER, INITIAL_LEDGER)
   );
 
-  const [receipts, setReceipts] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.RECEIPTS, INITIAL_RECEIPTS_QUEUE)
-  );
+  const [receipts, setReceipts] = useState([]);
 
-  const [transfers, setTransfers] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.TRANSFERS, INITIAL_TRANSFERS_QUEUE)
-  );
+  const [transfers, setTransfers] = useState([]);
 
-  const [deliveries, setDeliveries] = useState(() =>
-    loadFromStorage(STORAGE_KEYS.DELIVERIES, INITIAL_DELIVERIES_QUEUE)
-  );
+  const [deliveries, setDeliveries] = useState([]);
 
   const [adjustments, setAdjustments] = useState(() =>
     loadFromStorage(STORAGE_KEYS.ADJUSTMENTS, INITIAL_ADJUSTMENTS)
@@ -177,7 +171,9 @@ export const InventoryProvider = ({ children }) => {
           dock: `Bay ${(r.id % 3) + 1}`,
           eta: 'Today, 14:00',
           carrier: 'Global Express Freight',
-          status: r.status.toUpperCase() === 'VALIDATED' ? 'RECEIVED' : r.status.toUpperCase(),
+          status: r.status.toUpperCase() === 'VALIDATED' ? 'RECEIVED' : 
+                  r.status.toUpperCase() === 'DRAFT' ? 'READY_TO_RECEIVE' : 
+                  r.status.toUpperCase(),
           targetLocation: `Rack A-${String(r.id % 12 + 1).padStart(2, '0')}`,
         }));
         setReceipts(mappedReceipts);
@@ -195,7 +191,10 @@ export const InventoryProvider = ({ children }) => {
           carrier: 'FedEx Freight Priority',
           deadline: 'Today, EOD',
           sourceLocation: `Rack A-${String(d.id % 12 + 1).padStart(2, '0')}`,
-          status: d.status.toUpperCase() === 'SHIPPED' ? 'DISPATCHED' : d.status.toUpperCase(),
+          status: d.status.toUpperCase() === 'SHIPPED' ? 'DISPATCHED' :
+                  d.status.toUpperCase() === 'DRAFT' ? 'READY_TO_DISPATCH' :
+                  d.status.toUpperCase() === 'PACKED' ? 'PICKED' :
+                  d.status.toUpperCase(),
           priority: 'HIGH',
         }));
         setDeliveries(mappedDeliveries);
@@ -492,9 +491,15 @@ export const InventoryProvider = ({ children }) => {
   };
 
   // Immediate causal stock increment upon receiving
-  const confirmReceipt = (poNumber, receivedQty, operatorName) => {
+  const confirmReceipt = async (poNumber, receivedQty, operatorName) => {
     const receipt = receipts.find((r) => r.poNumber === poNumber || r.id === poNumber);
     if (!receipt) return;
+    
+    // Call backend API (fire and forget for optimistic UI)
+    const backendId = receipt.id.replace('rec-', '');
+    try {
+      fetch(`${API_BASE_URL}/receipts/${backendId}/receive`, { method: 'POST' }).catch(e => console.error(e));
+    } catch(e) {}
 
     const qty = parseInt(receivedQty || receipt.expectedQty, 10);
     const targetProduct = products.find((p) => p.sku === receipt.sku);
@@ -656,9 +661,14 @@ export const InventoryProvider = ({ children }) => {
   };
 
   // Immediate causal location shift upon transfer execution
-  const executeTransfer = (transferNo, operatorName) => {
+  const executeTransfer = async (transferNo, operatorName) => {
     const transfer = transfers.find((t) => t.transferNo === transferNo || t.id === transferNo);
     if (!transfer) return;
+
+    const backendId = transfer.id.replace('tr-', '');
+    try {
+      fetch(`${API_BASE_URL}/transfers/${backendId}/execute`, { method: 'POST' }).catch(e => console.error(e));
+    } catch(e) {}
 
     const targetProduct = products.find((p) => p.sku === transfer.sku);
     if (!targetProduct) return;
@@ -870,9 +880,14 @@ export const InventoryProvider = ({ children }) => {
   };
 
   // Stage-by-stage delivery progression
-  const advanceDeliveryStatus = (orderNo, targetStatus, operatorName) => {
+  const advanceDeliveryStatus = async (orderNo, targetStatus, operatorName) => {
     const delivery = deliveries.find((d) => d.orderNo === orderNo || d.id === orderNo);
     if (!delivery) return;
+
+    const backendId = delivery.id.replace('del-', '');
+    try {
+      fetch(`${API_BASE_URL}/deliveries/${backendId}/advance`, { method: 'POST' }).catch(e => console.error(e));
+    } catch(e) {}
 
     if (targetStatus === 'DISPATCHED') {
       dispatchDelivery(orderNo, operatorName);

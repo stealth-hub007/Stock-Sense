@@ -39,7 +39,7 @@ export const DEMO_OPERATORS = [
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Default to INVENTORY_MANAGER for rich demo readiness
+  // Default to null so initial screen is Login (or load saved session)
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('stocksense_operator');
     if (saved) {
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
         // fallback
       }
     }
-    return DEMO_OPERATORS[0];
+    return null;
   });
 
   const [activeWarehouse, setActiveWarehouse] = useState({
@@ -197,6 +197,12 @@ export const AuthProvider = ({ children }) => {
     return { success: true, user: newUser };
   };
 
+  const loginUserSession = (userObj) => {
+    setCurrentUser(userObj);
+    localStorage.setItem('stocksense_operator', JSON.stringify(userObj));
+    return userObj;
+  };
+
   const logout = () => {
     localStorage.removeItem('stocksense_operator');
     setCurrentUser(null);
@@ -214,6 +220,7 @@ export const AuthProvider = ({ children }) => {
         switchRole,
         loginAs: (targetRole) => switchRole(targetRole),
         login,
+        loginUserSession,
         register,
         logout,
         activeWarehouse,

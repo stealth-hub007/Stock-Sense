@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../context/InventoryContext';
 import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
 export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false, onNavigateTab }) => {
-  const { user, role, switchRole } = useAuth();
+  const { user, role, switchRole, logout } = useAuth();
   const {
     warehouses,
     activeWarehouse,
@@ -15,6 +15,7 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
     clearAllNotifications,
     approveAdjustment,
     rejectAdjustment,
+    approveUser,
   } = useInventory();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isWarehouseMenuOpen, setIsWarehouseMenuOpen] = useState(false);
@@ -524,9 +525,54 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
                           </div>
                         )}
 
+                        {/* Interactive Approval Bar for Admins on Operator Approval Requests */}
+                        {(n.type === 'APPROVAL_REQUEST' || n.type === 'NEW_REGISTRATION') && !n.resolved && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.4rem', paddingTop: '0.4rem', borderTop: '1px solid var(--ss-border)', flexWrap: 'wrap' }}>
+                            {isAdmin ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (n.userId) {
+                                      approveUser(n.userId, n.userRole, n.userFacility);
+                                    }
+                                    markNotificationRead(n.id);
+                                  }}
+                                  className="ss-btn ss-btn-primary"
+                                  style={{
+                                    fontSize: '0.6875rem',
+                                    padding: '0.2rem 0.55rem',
+                                    backgroundColor: 'var(--ss-success)',
+                                    borderColor: 'var(--ss-success)',
+                                  }}
+                                >
+                                  ✓ Quick Approve Operator
+                                </button>
+                                {onNavigateTab && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsNotificationMenuOpen(false);
+                                      onNavigateTab('users');
+                                    }}
+                                    className="ss-btn ss-btn-secondary"
+                                    style={{ fontSize: '0.6875rem', padding: '0.2rem 0.5rem', marginLeft: 'auto' }}
+                                  >
+                                    Review in Users
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '0.6875rem', color: 'var(--ss-warning-text)', fontWeight: 600 }}>
+                                🛡️ Admin Action Required: Marcus Vance
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         {n.resolved && (
                           <div style={{ fontSize: '0.6875rem', color: 'var(--ss-success)', marginTop: '0.25rem', fontWeight: 600 }}>
-                            ✓ Resolved by {n.resolvedBy || 'Manager'}
+                            ✓ Resolved by {n.resolvedBy || 'Admin'}
                           </div>
                         )}
                       </div>
@@ -735,6 +781,36 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
                   <span>✓</span> Full Stock Control & Ledger Authority
                 </div>
               </div>
+
+              {/* Sign Out Action */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  logout();
+                }}
+                className="ss-btn ss-btn-ghost"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  color: 'var(--ss-danger)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  padding: '0.5rem',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  borderRadius: 'var(--ss-radius-md)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+                title="Sign out and return to Login"
+              >
+                <span>🚪</span>
+                <span>Sign Out / Lock Terminal</span>
+              </button>
             </div>
           )}
         </div>

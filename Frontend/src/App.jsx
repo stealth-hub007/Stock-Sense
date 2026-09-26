@@ -44,6 +44,9 @@ import AdminUnitsPage from './pages/admin/AdminUnitsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 
+// Authentication Pages
+import AuthPage from './pages/auth/AuthPage';
+
 /**
  * Read which panel is active from the URL path or hash.
  * /staff or #/staff => 'staff'
@@ -68,7 +71,7 @@ function getPanelFromUrl() {
 function ManagerPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole } = useAuth();
+  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -88,7 +91,9 @@ function ManagerPanel() {
 
   // Sync role to INVENTORY_MANAGER when this panel is active
   useEffect(() => {
-    switchRole(ROLES.INVENTORY_MANAGER);
+    if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.INVENTORY_MANAGER) {
+      switchRole(ROLES.INVENTORY_MANAGER);
+    }
   }, []);
 
   return (
@@ -124,7 +129,7 @@ function ManagerPanel() {
 function StaffPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole } = useAuth();
+  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -133,7 +138,9 @@ function StaffPanel() {
 
   // Sync role to WAREHOUSE_STAFF when this panel is active
   useEffect(() => {
-    switchRole(ROLES.WAREHOUSE_STAFF);
+    if (user?.role !== ROLES.ADMIN && user?.role !== ROLES.WAREHOUSE_STAFF) {
+      switchRole(ROLES.WAREHOUSE_STAFF);
+    }
   }, []);
 
   return (
@@ -162,7 +169,7 @@ function StaffPanel() {
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole } = useAuth();
+  const { switchRole, user } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -171,7 +178,9 @@ function AdminPanel() {
 
   // Sync role to ADMIN when this panel is active
   useEffect(() => {
-    switchRole(ROLES.ADMIN);
+    if (user?.role !== ROLES.ADMIN) {
+      switchRole(ROLES.ADMIN);
+    }
   }, []);
 
   return (
@@ -196,9 +205,10 @@ function AdminPanel() {
 }
 
 // =========================================================================
-// ROOT ROUTER — hash-based & path-based, NO LOGIN REQUIRED
+// ROOT ROUTER — AUTHENTICATED GATEWAY (DEFAULT INITIAL SCREEN: LOGIN)
 // =========================================================================
 function RootApp() {
+  const { user, isAuthenticated } = useAuth();
   const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
 
   // Listen for URL changes (both hash and pathname history)
@@ -211,6 +221,43 @@ function RootApp() {
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
+
+  // When user signs in, sync panel to their role
+  useEffect(() => {
+    if (user?.role) {
+      if (user.role === ROLES.ADMIN) {
+        setCurrentPanel('admin');
+        window.location.hash = '#/admin';
+      } else if (user.role === ROLES.WAREHOUSE_STAFF) {
+        setCurrentPanel('staff');
+        window.location.hash = '#/staff';
+      } else {
+        setCurrentPanel('manager');
+        window.location.hash = '#/manager';
+      }
+    }
+  }, [user?.id, user?.role]);
+
+  // FLOW REQUIREMENT: INITIAL SCREEN IS THE LOGIN/REGISTER PAGE
+  if (!isAuthenticated || !user) {
+    return (
+      <AuthPage
+        initialTab="LOGIN"
+        onLoginSuccess={(loggedInUser) => {
+          if (loggedInUser.role === ROLES.ADMIN) {
+            setCurrentPanel('admin');
+            window.location.hash = '#/admin';
+          } else if (loggedInUser.role === ROLES.WAREHOUSE_STAFF) {
+            setCurrentPanel('staff');
+            window.location.hash = '#/staff';
+          } else {
+            setCurrentPanel('manager');
+            window.location.hash = '#/manager';
+          }
+        }}
+      />
+    );
+  }
 
   if (currentPanel === 'staff') {
     return <StaffPanel />;

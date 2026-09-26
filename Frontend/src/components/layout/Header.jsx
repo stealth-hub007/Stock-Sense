@@ -24,26 +24,10 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
   const warehouseMenuRef = useRef(null);
   const notificationMenuRef = useRef(null);
 
-<<<<<<< HEAD
-  const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
-  const isAdmin = role === ROLES.ADMIN;
-  const isStaff = role === ROLES.WAREHOUSE_STAFF;
-=======
   const userRole = user?.assignedRole || user?.role || role;
-  const isUserAdmin = userRole === ROLES.ADMIN;
-  const isUserManager = userRole === ROLES.INVENTORY_MANAGER;
-  const isUserStaff = userRole === ROLES.WAREHOUSE_STAFF;
-
-  // Authorization rule:
-  // - Admin: sees Manager, Staff Floor, Admin (3 panels)
-  // - Manager: sees Manager, Staff Floor (2 panels)
-  // - Staff: sees NO panel switcher (restricted strictly to Staff Floor)
-  const canSwitchPanel = isUserAdmin || isUserManager;
-
   const badgeStyle = ROLE_BADGE_STYLES[userRole] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
-  const isAdmin = isAdminPanel || userRole === ROLES.ADMIN;
-  const isStaff = isStaffPanel || userRole === ROLES.WAREHOUSE_STAFF;
->>>>>>> origin/Frontend
+  const isAdmin = userRole === ROLES.ADMIN;
+  const isStaff = userRole === ROLES.WAREHOUSE_STAFF;
 
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
   const hasUrgentApproval = (notifications || []).some(
@@ -319,135 +303,7 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
             </div>
           </div>
         )}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.2rem 0.4rem',
-              background: 'var(--ss-bg-app)',
-              border: '1px solid var(--ss-border)',
-              borderRadius: 'var(--ss-radius-md)',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                color: 'var(--ss-text-muted)',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                paddingLeft: '0.25rem',
-              }}
-            >
-              PANEL:
-            </span>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                background: 'var(--ss-bg-surface)',
-                border: '1px solid var(--ss-border)',
-                borderRadius: 'var(--ss-radius-sm)',
-                padding: '2px',
-              }}
-            >
-              {/* Manager Panel — Visible to Manager & Admin */}
-              <button
-                type="button"
-<<<<<<< HEAD
-                onClick={() => {
-                  window.location.hash = '#/manager';
-                }}
-=======
-                onClick={() => switchPanel('manager')}
->>>>>>> origin/Frontend
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: (activePanel === 'manager' || (!isAdminPanel && !isStaffPanel)) ? 'var(--ss-primary)' : 'transparent',
-                  color: (activePanel === 'manager' || (!isAdminPanel && !isStaffPanel)) ? '#ffffff' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Manager
-              </button>
-
-              {/* Staff Floor Panel — Visible to Manager & Admin */}
-              <button
-                type="button"
-<<<<<<< HEAD
-                onClick={() => {
-                  window.location.hash = '#/staff';
-                }}
-=======
-                onClick={() => switchPanel('staff')}
->>>>>>> origin/Frontend
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: (activePanel === 'staff' || isStaffPanel) ? 'var(--ss-success)' : 'transparent',
-                  color: (activePanel === 'staff' || isStaffPanel) ? '#ffffff' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Staff Floor
-              </button>
-<<<<<<< HEAD
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.hash = '#/admin';
-                }}
-                style={{
-                  padding: '0.25rem 0.6rem',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  borderRadius: 'var(--ss-radius-xs)',
-                  border: 'none',
-                  background: isAdminPanel ? 'var(--ss-warning)' : 'transparent',
-                  color: isAdminPanel ? '#000000' : 'var(--ss-text-secondary)',
-                  cursor: 'pointer',
-                  transition: 'all 150ms ease',
-                }}
-              >
-                Admin
-              </button>
-=======
-
-              {/* Admin Panel — ONLY VISIBLE TO ADMIN */}
-              {isUserAdmin && (
-                <button
-                  type="button"
-                  onClick={() => switchPanel('admin')}
-                  style={{
-                    padding: '0.25rem 0.6rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    borderRadius: 'var(--ss-radius-xs)',
-                    border: 'none',
-                    background: (activePanel === 'admin' || isAdminPanel) ? 'var(--ss-warning)' : 'transparent',
-                    color: (activePanel === 'admin' || isAdminPanel) ? '#000000' : 'var(--ss-text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 150ms ease',
-                  }}
-                >
-                  Admin
-                </button>
-              )}
->>>>>>> origin/Frontend
-            </div>
-          </div>
-        )}
 
 
         {/* Real-time Notification Bell

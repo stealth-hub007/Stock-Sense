@@ -209,60 +209,44 @@ export const AuthPage = ({ onLoginSuccess }) => {
     if (!trimEmail || !password) { toast$('Please enter your email and password.', 'error'); return; }
 
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600)); // simulate network
 
-    /* ── 1. ADMIN CHECK — direct access, no approval needed ── */
-    if (trimEmail === ADMIN_EMAIL.toLowerCase() && password === ADMIN_PASSWORD) {
-      const adminUser = (users || []).find(u => u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) || {
-        id: 'op-03', name: 'Marcus Vance', email: ADMIN_EMAIL,
-        role: ROLES.ADMIN, title: 'Warehouse Systems Administrator',
-        facility: 'Global Operations HQ', avatar: 'MV', status: 'ACTIVE',
-      };
-      toast$('Welcome, Admin!', 'success');
-      setLoading(false);
-      doSession(adminUser);
-      return;
-    }
-
-    /* ── 2. FIND USER in registered list ── */
-    const found = (users || []).find(u => u.email?.toLowerCase() === trimEmail);
-
-    if (!found) {
-      setLoading(false);
-      toast$('No account found. Please register first.', 'warning');
-      setREmail(email.trim());
-      setTimeout(() => setMode('register'), 700);
-      return;
-    }
-
-    /* ── 3. PENDING — show approval dialog ── */
-    if (found.status === 'PENDING_APPROVAL') {
-      setLoading(false);
-      // Notify admin
-      addNotification({
-        type: 'APPROVAL_REQUEST',
-        title: `⏳ Login Attempt: ${found.name}`,
-        message: `${found.name} (${found.email}) tried to sign in — still pending approval.`,
-        urgency: 'HIGH', timestamp: 'Just now', targetRole: ROLES.ADMIN,
-        userId: found.id, userRole: found.role,
+    try {
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimEmail, password })
       });
-      recordSystemActivity('Auth', 'LOGIN_BLOCKED', `${found.name} blocked — PENDING_APPROVAL.`, 'WARNING');
-      setPendingUser(found);
-      setApprovalFeedback(null);
-      return;
-    }
 
-    /* ── 4. SUSPENDED ── */
-    if (found.status === 'SUSPENDED') {
+      if (!response.ok) {
+        if (response.status === 401) {
+          toast$('Invalid email or password.', 'error');
+        } else {
+          toast$('An error occurred while logging in.', 'error');
+        }
+        setLoading(false);
+        return;
+      }
+
+      const userData = await response.json();
+      
+      const sessionUser = {
+        id: `op-${userData.id}`,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role === 'ADMIN' ? ROLES.ADMIN : userData.role === 'MANAGER' ? ROLES.INVENTORY_MANAGER : ROLES.WAREHOUSE_STAFF,
+        status: userData.status,
+        avatar: userData.name.substring(0, 2).toUpperCase(),
+        facility: userData.role === 'ADMIN' ? 'Global Operations HQ' : 'WH-01 Main DC (San Francisco)'
+      };
+      
+      toast$(`Welcome back, ${sessionUser.name}!`, 'success');
       setLoading(false);
-      toast$('Your account has been suspended. Contact your administrator.', 'error');
-      return;
+      doSession(sessionUser);
+    } catch (error) {
+      console.error(error);
+      toast$('Network error. Make sure the backend is running.', 'error');
+      setLoading(false);
     }
-
-    /* ── 5. ACTIVE — log in ── */
-    toast$(`Welcome back, ${found.name}!`, 'success');
-    setLoading(false);
-    doSession({ ...found, lastActive: 'Just now' });
   };
 
   /* ════════════════════════════════════════════
@@ -528,7 +512,6 @@ export const AuthPage = ({ onLoginSuccess }) => {
               {/* ════════ LOGIN FORM ════════ */}
               {mode === 'login' && (
                 <form onSubmit={handleLogin} style={{ display:'flex',flexDirection:'column',gap:'1rem' }}>
-
                   <div>
                     <label className="ap-label">Email Address</label>
                     <div style={{ position:'relative' }}>

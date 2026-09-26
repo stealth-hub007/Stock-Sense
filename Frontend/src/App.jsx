@@ -58,6 +58,24 @@ import AuthPage from './pages/auth/AuthPage';
 
 // Panel is controlled by React state only — URL stays as localhost:5173
 
+/**
+ * Read which panel is active from the URL path or hash.
+ * /staff or #/staff => 'staff'
+ * /admin or #/admin => 'admin'
+ * /manager or #/manager (or default) => 'manager'
+ */
+function getPanelFromUrl() {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  if (path.includes('/staff') || hash.includes('staff')) {
+    return 'staff';
+  }
+  if (path.includes('/admin') || hash.includes('admin')) {
+    return 'admin';
+  }
+  return 'manager';
+}
+
 // =========================================================================
 // INVENTORY MANAGER PANEL
 // =========================================================================
@@ -246,27 +264,7 @@ const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
       <ManagerPanel />
     </BrowserRouter>
   );
-    return <AdminPanel />;
-  }
-  if (activePanel === 'staff' || userRole === ROLES.WAREHOUSE_STAFF) {
-    return <StaffPanel />;
-  }
-  if (activePanel === 'manager' && (userRole === ROLES.ADMIN || userRole === ROLES.INVENTORY_MANAGER)) {
-    return <ManagerPanel />;
-  }
 
-<<<<<<< HEAD
-  return (
-    <BrowserRouter>
-      <ManagerPanel />
-    </BrowserRouter>
-  );
-=======
-  // Fallback defaults
-  if (userRole === ROLES.ADMIN) return <AdminPanel />;
-  if (userRole === ROLES.WAREHOUSE_STAFF) return <StaffPanel />;
-  return <ManagerPanel />;
->>>>>>> origin/Frontend
 }
 
 export default function App() {

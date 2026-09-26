@@ -67,6 +67,7 @@ class ProductCreate(ProductBase):
 
 class ProductResponse(ProductBase):
     id: int
+    current_stock: int = 0
     model_config = ConfigDict(from_attributes=True)
 
 # --- Warehouses & Locations ---

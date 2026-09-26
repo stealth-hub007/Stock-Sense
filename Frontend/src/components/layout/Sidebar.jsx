@@ -1,8 +1,9 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getNavigationForRole } from '../../config/navigation';
 
-export const Sidebar = ({ activeTab, onSelectTab }) => {
+export const Sidebar = () => {
   const { role, permissions } = useAuth();
   const navItems = getNavigationForRole(role, permissions);
 
@@ -56,14 +57,11 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
 
               <div>
                 {itemsInCategory.map((item) => {
-                  const isActive = activeTab === item.id;
-
                   return (
-                    <button
+                    <NavLink
                       key={item.id}
-                      type="button"
-                      onClick={() => onSelectTab(item.id)}
-                      style={{
+                      to={`/${item.id === 'dashboard' ? '' : item.id}`}
+                      style={({ isActive }) => ({
                         width: 'calc(100% - 1.5rem)',
                         margin: '0.15rem 0.75rem',
                         display: 'flex',
@@ -79,23 +77,14 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
                         cursor: 'pointer',
                         textAlign: 'left',
                         transition: 'all 150ms ease',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'var(--ss-bg-surface-hover)';
-                          e.currentTarget.style.color = 'var(--ss-text-primary)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = 'var(--ss-text-secondary)';
-                        }
-                      }}
+                        textDecoration: 'none'
+                      })}
                     >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span>{item.label}</span>
-                      </span>
+                      {({ isActive }) => (
+                        <>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span>{item.label}</span>
+                          </span>
 
                       {item.badge && (
                         <span
@@ -112,7 +101,9 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
                           {item.badge}
                         </span>
                       )}
-                    </button>
+                        </>
+                      )}
+                    </NavLink>
                   );
                 })}
               </div>

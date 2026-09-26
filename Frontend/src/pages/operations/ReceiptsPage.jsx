@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
+import Pagination, { usePagination } from '../../components/common/Pagination';
 
 export const ReceiptsPage = ({ onNavigateTab }) => {
   const { receipts, products, warehouses, activeWarehouse, addReceipt, editReceipt, deleteReceipt, confirmReceipt, shiftReceiptToLocation } = useInventory();
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const { page, itemsPerPage, setPage, setItemsPerPage, paginate, resetPage } = usePagination(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingReceipt, setEditingReceipt] = useState(null);
   const [shiftingReceipt, setShiftingReceipt] = useState(null);
@@ -78,6 +80,10 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Pagination slice
+  const paginatedReceipts = paginate(filteredReceipts);
+ 
 
   const handleReceiveShipment = (poNumber, sku, qty) => {
     confirmReceipt(poNumber, qty, 'Sarah Chen (Manager)');
@@ -346,7 +352,7 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredReceipts.map((r) => {
+              {paginatedReceipts.map((r) => {
                 const isReady = r.status === 'READY_TO_RECEIVE';
                 const isReceived = r.status === 'RECEIVED';
                 const isInTransit = r.status === 'IN_TRANSIT';
@@ -493,6 +499,13 @@ export const ReceiptsPage = ({ onNavigateTab }) => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={page}
+          totalItems={filteredReceipts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={(p) => { setPage(p); window.scrollTo({top:0,behavior:'smooth'}); }}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       </div>
 
       {/* Create Inbound PO Modal */}

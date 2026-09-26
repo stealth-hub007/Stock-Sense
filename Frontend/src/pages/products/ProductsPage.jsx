@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES, ROLE_LABELS } from '../../constants/roles';
+import Pagination, { usePagination } from '../../components/common/Pagination';
 
 export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
   const {
@@ -25,6 +26,8 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
+
+  const { page, itemsPerPage, setPage, setItemsPerPage, paginate, resetPage } = usePagination(10);
 
   // Quick Shifting Modal State
   const [shiftingProduct, setShiftingProduct] = useState(null);
@@ -87,11 +90,13 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
     const matchesSearch =
       p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.primaryLocation.toLowerCase().includes(searchTerm.toLowerCase());
+      (p.primaryLocation || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCat = selectedCategory === 'ALL' || p.category === selectedCategory;
     const matchesStatus = selectedStatus === 'ALL' || p.status === selectedStatus;
     return matchesSearch && matchesCat && matchesStatus;
   });
+
+  const paginatedProducts = paginate(filteredProducts);
 
   const handleCreateProduct = (e) => {
     e.preventDefault();
@@ -446,7 +451,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((p) => {
+              {paginatedProducts.map((p) => {
                 const isLow = p.status === 'LOW_STOCK';
                 const isOut = p.status === 'OUT_OF_STOCK';
 
@@ -613,6 +618,13 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={page}
+          totalItems={filteredProducts.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={(p) => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+          onItemsPerPageChange={setItemsPerPage}
+        />
       </div>
 
       {/* Add New SKU Modal */}

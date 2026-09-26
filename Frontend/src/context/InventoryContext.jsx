@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { fetchProducts, fetchReceipts, fetchDeliveries, fetchTransfers, fetchLedger } from '../services/api';
 import {
   INITIAL_PRODUCTS,
   INITIAL_LEDGER,
@@ -124,6 +125,126 @@ export const InventoryProvider = ({ children }) => {
   const [notifications, setNotifications] = useState(() =>
     loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
   );
+
+  // Fetch real data from backend
+  const loadRealData = async (skip = 0, limit = 50) => {
+    try {
+      const [realProducts, realReceipts, realDeliveries, realTransfers, realLedger] = await Promise.all([
+        fetchProducts(skip, limit),
+        fetchReceipts(skip, limit),
+        fetchDeliveries(skip, limit),
+        fetchTransfers(skip, limit),
+        fetchLedger(skip, limit)
+      ]);
+
+      if (realProducts && realProducts.length > 0) {
+        // Map backend schema to frontend model
+        const mappedProducts = realProducts.map(p => ({
+          id: p.id,
+          sku: p.sku,
+          name: p.name,
+          category: p.category_id,
+          unitCost: p.price || 0,
+          unitPrice: p.price || 0,
+          onHand: p.current_stock || 0,
+          allocated: 0,
+          available: p.current_stock || 0,
+          minThreshold: 10,
+          status: p.current_stock === 0 ? 'OUT_OF_STOCK' : (p.current_stock <= 10 ? 'LOW_STOCK' : 'IN_STOCK'),
+          primaryLocation: `Rack A-${String(p.id % 12 + 1).padStart(2, '0')}`,
+          uom: p.uom_id,
+          barcode: `${1000000000 + p.id}`,
+          weight: '1.0 kg',
+          reorderRule: {
+            minStock: 10,
+            maxStock: 100,
+            reorderPoint: 20,
+            autoReorder: true
+          },
+          locations: [{ zone: 'Main Storage', bin: `Rack A-${String(p.id % 12 + 1).padStart(2, '0')}`, qty: p.current_stock || 0 }],
+        }));
+        setProducts(mappedProducts);
+      }
+
+      if (realReceipts && realReceipts.length > 0) {
+        const mappedReceipts = realReceipts.map(r => ({
+          id: `rec-${r.id}`,
+          poNumber: `PO-${String(r.id).padStart(4, '0')}`,
+          supplier: r.supplier_name || `Supplier ${r.supplier_id}`,
+          sku: r.product_sku || 'SKU-MULTI',
+          productName: r.product_name || 'Multiple Products',
+          expectedQty: r.expected_qty || 0,
+          dock: `Bay ${(r.id % 3) + 1}`,
+          eta: 'Today, 14:00',
+          carrier: 'Global Express Freight',
+          status: r.status.toUpperCase() === 'VALIDATED' ? 'RECEIVED' : r.status.toUpperCase(),
+          targetLocation: `Rack A-${String(r.id % 12 + 1).padStart(2, '0')}`,
+        }));
+        setReceipts(mappedReceipts);
+      }
+
+      if (realDeliveries && realDeliveries.length > 0) {
+        const mappedDeliveries = realDeliveries.map(d => ({
+          id: `del-${d.id}`,
+          orderNo: `SO-${String(d.id).padStart(4, '0')}`,
+          customer: d.customer_name,
+          sku: d.product_sku || 'SKU-MULTI',
+          productName: d.product_name || 'Multiple Products',
+          qty: d.qty || 0,
+          destination: `${d.customer_name} HQ`,
+          carrier: 'FedEx Freight Priority',
+          deadline: 'Today, EOD',
+          sourceLocation: `Rack A-${String(d.id % 12 + 1).padStart(2, '0')}`,
+          status: d.status.toUpperCase() === 'SHIPPED' ? 'DISPATCHED' : d.status.toUpperCase(),
+          priority: 'HIGH',
+        }));
+        setDeliveries(mappedDeliveries);
+      }
+
+      if (realTransfers && realTransfers.length > 0) {
+        const mappedTransfers = realTransfers.map(t => ({
+          id: `tr-${t.id}`,
+          transferNo: `TR-${String(t.id).padStart(4, '0')}`,
+          sku: 'SKU-MULTI',
+          productName: 'Internal Transfer',
+          qty: t.qty || 10,
+          fromLocation: `Rack A-${String(t.source_location_id % 12 + 1).padStart(2, '0')}`,
+          toLocation: `Rack B-${String(t.destination_location_id % 5 + 1).padStart(2, '0')}`,
+          fromWarehouse: 'Main DC (Bay Area)',
+          toWarehouse: 'East Coast Hub',
+          priority: 'MEDIUM',
+          reason: 'Stock Rebalancing',
+          status: t.status.toUpperCase() === 'COMPLETED' ? 'COMPLETED' : 'SCHEDULED',
+          requestedBy: 'System',
+        }));
+        setTransfers(mappedTransfers);
+      }
+
+      if (realLedger && realLedger.length > 0) {
+        const mappedLedger = realLedger.map(l => ({
+          id: `tx-${l.id}`,
+          timestamp: l.created_at,
+          type: l.operation_type,
+          reference: l.reference_id,
+          sku: `SKU-${10000 + l.product_id}`, // naive mapping
+          productName: 'Database Ledger Entry',
+          source: `Location ${l.location_id}`,
+          destination: l.operation_type,
+          qtyChange: l.quantity,
+          balanceAfter: l.quantity,
+          operator: 'System User',
+          note: `Auto-generated ${l.operation_type} entry`,
+        }));
+        setLedger(mappedLedger);
+      }
+    } catch (err) {
+      console.error("Failed to load data from backend:", err);
+    }
+  };
+
+  useEffect(() => {
+    loadRealData();
+  }, []);
 
   // Sync state to localStorage whenever modified
   useEffect(() => {
@@ -1201,6 +1322,7 @@ export const InventoryProvider = ({ children }) => {
     <InventoryContext.Provider
       value={{
         products,
+        loadRealData,
         addProduct,
         editProduct,
         deleteProduct,

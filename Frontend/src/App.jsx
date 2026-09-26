@@ -1,4 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+
+// Clear stale mock data so the real backend data is always shown
+const MOCK_KEYS = [
+  'stocksense_products_v1', 'stocksense_ledger_v1', 'stocksense_receipts_v1',
+  'stocksense_transfers_v1', 'stocksense_deliveries_v1', 'stocksense_adjustments_v1',
+];
+MOCK_KEYS.forEach(k => localStorage.removeItem(k));
+
 import { AuthProvider } from './context/AuthContext';
 import { InventoryProvider, useInventory } from './context/InventoryContext';
 import { ROLES } from './constants/roles';
@@ -50,24 +59,23 @@ function getPanelFromUrl() {
 // INVENTORY MANAGER PANEL
 // =========================================================================
 function ManagerPanel() {
-  const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
   const { switchRole } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleResetData = () => {
     resetAllData();
-    setActiveTab('dashboard');
+    navigate('/');
   };
 
-  const getStepNumberForTab = (tab) => {
-    switch (tab) {
-      case 'receipts': return 1;
-      case 'transfers': return 2;
-      case 'deliveries': return 3;
-      case 'adjustments': return 4;
-      case 'ledger': return 5;
-      default: return 1;
-    }
+  const getStepNumberForTab = (path) => {
+    if (path.includes('receipts')) return 1;
+    if (path.includes('transfers')) return 2;
+    if (path.includes('deliveries')) return 3;
+    if (path.includes('adjustments')) return 4;
+    if (path.includes('ledger')) return 5;
+    return 1;
   };
 
   // Sync role to INVENTORY_MANAGER when this panel is active
@@ -77,25 +85,28 @@ function ManagerPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
-      <Header onResetData={handleResetData} isStaffPanel={false} onNavigateTab={setActiveTab} />
+      <Header onResetData={handleResetData} isStaffPanel={false} onNavigateTab={(tab) => navigate(`/${tab}`)} />
       <DemoStepper
-        currentStep={getStepNumberForTab(activeTab)}
-        onStepClick={(tab) => setActiveTab(tab)}
+        currentStep={getStepNumberForTab(location.pathname)}
+        onStepClick={(tab) => navigate(`/${tab}`)}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+        <Sidebar activeTab={location.pathname.replace('/', '') || 'dashboard'} onSelectTab={(tab) => navigate(`/${tab === 'dashboard' ? '' : tab}`)} />
         <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
-          {activeTab === 'dashboard' && <InventoryManagerDashboard onNavigateTab={setActiveTab} />}
-          {activeTab === 'products' && <ProductsPage onQuickReceive={() => setActiveTab('receipts')} onQuickTransfer={() => setActiveTab('transfers')} />}
-          {activeTab === 'receipts' && <ReceiptsPage onNavigateTab={setActiveTab} />}
-          {activeTab === 'transfers' && <TransfersPage onNavigateTab={setActiveTab} />}
-          {activeTab === 'deliveries' && <DeliveriesPage />}
-          {activeTab === 'adjustments' && <AdjustmentsPage />}
-          {activeTab === 'ledger' && <StockLedgerPage />}
-          {activeTab === 'reports' && <ReportsPage onNavigateTab={setActiveTab} />}
-          {(activeTab === 'warehouse' || activeTab === 'warehouses') && <WarehousePage />}
-          {activeTab === 'settings' && <SettingsPage onResetData={handleResetData} />}
-          {activeTab === 'users' && <SettingsPage onResetData={handleResetData} />}
+          <Routes>
+            <Route path="/" element={<InventoryManagerDashboard onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+            <Route path="/products" element={<ProductsPage onQuickReceive={() => navigate('/receipts')} onQuickTransfer={() => navigate('/transfers')} />} />
+            <Route path="/receipts" element={<ReceiptsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+            <Route path="/transfers" element={<TransfersPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+            <Route path="/deliveries" element={<DeliveriesPage />} />
+            <Route path="/adjustments" element={<AdjustmentsPage />} />
+            <Route path="/ledger" element={<StockLedgerPage />} />
+            <Route path="/reports" element={<ReportsPage onNavigateTab={(tab) => navigate(`/${tab}`)} />} />
+            <Route path="/warehouse" element={<WarehousePage />} />
+            <Route path="/warehouses" element={<WarehousePage />} />
+            <Route path="/settings" element={<SettingsPage onResetData={handleResetData} />} />
+            <Route path="/users" element={<SettingsPage onResetData={handleResetData} />} />
+          </Routes>
         </main>
       </div>
     </div>
@@ -141,12 +152,12 @@ function StaffPanel() {
 }
 
 // =========================================================================
-// ROOT ROUTER — hash-based, NO LOGIN REQUIRED
+// ROOT ROUTER
 // =========================================================================
 function RootApp() {
   const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
 
-  // Listen for URL changes (both hash and pathname history)
+  // Listen for URL changes
   useEffect(() => {
     const handleUrlChange = () => setCurrentPanel(getPanelFromUrl());
     window.addEventListener('hashchange', handleUrlChange);
@@ -161,7 +172,11 @@ function RootApp() {
     return <StaffPanel />;
   }
 
-  return <ManagerPanel />;
+  return (
+    <BrowserRouter>
+      <ManagerPanel />
+    </BrowserRouter>
+  );
 }
 
 export default function App() {

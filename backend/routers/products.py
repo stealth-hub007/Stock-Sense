@@ -13,9 +13,39 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[schemas.ProductResponse])
-async def list_products(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.Product))
-    return result.scalars().all()
+async def list_products(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(models.Product).offset(skip).limit(limit))
+    products = result.scalars().all()
+    
+    # Get stock balances for these products
+    if not products:
+        return []
+        
+    product_ids = [p.id for p in products]
+    balances_result = await db.execute(
+        select(models.StockBalance).where(models.StockBalance.product_id.in_(product_ids))
+    )
+    balances = balances_result.scalars().all()
+    
+    # Map balances to products
+    stock_map = {}
+    for b in balances:
+        stock_map[b.product_id] = stock_map.get(b.product_id, 0) + b.quantity
+        
+    response = []
+    for p in products:
+        p_dict = {
+            "id": p.id,
+            "sku": p.sku,
+            "name": p.name,
+            "category_id": p.category_id,
+            "uom_id": p.uom_id,
+            "price": p.price,
+            "current_stock": stock_map.get(p.id, 0)
+        }
+        response.append(p_dict)
+        
+    return response
 
 @router.post("/", response_model=schemas.ProductResponse)
 async def create_product(product: schemas.ProductCreate, db: AsyncSession = Depends(get_db)):

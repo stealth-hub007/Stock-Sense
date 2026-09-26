@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useInventory } from '../../context/InventoryContext';
 import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
-export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => {
+export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false, onNavigateTab }) => {
   const { user, role, switchRole } = useAuth();
   const {
     warehouses,
@@ -24,7 +24,7 @@ export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => 
   const notificationMenuRef = useRef(null);
 
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
-  const isAdmin = role === ROLES.ADMIN;
+  const isAdmin = isAdminPanel || role === ROLES.ADMIN;
   const isStaff = isStaffPanel || role === ROLES.WAREHOUSE_STAFF;
 
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
@@ -248,8 +248,8 @@ export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => 
                   fontWeight: 600,
                   borderRadius: 'var(--ss-radius-xs)',
                   border: 'none',
-                  background: role === ROLES.INVENTORY_MANAGER ? 'var(--ss-primary)' : 'transparent',
-                  color: role === ROLES.INVENTORY_MANAGER ? '#ffffff' : 'var(--ss-text-secondary)',
+                  background: !isAdminPanel && !isStaffPanel ? 'var(--ss-primary)' : 'transparent',
+                  color: !isAdminPanel && !isStaffPanel ? '#ffffff' : 'var(--ss-text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 150ms ease',
                 }}
@@ -268,35 +268,34 @@ export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => 
                   fontWeight: 600,
                   borderRadius: 'var(--ss-radius-xs)',
                   border: 'none',
-                  background: role === ROLES.WAREHOUSE_STAFF ? 'var(--ss-success)' : 'transparent',
-                  color: role === ROLES.WAREHOUSE_STAFF ? '#ffffff' : 'var(--ss-text-secondary)',
+                  background: isStaffPanel ? 'var(--ss-success)' : 'transparent',
+                  color: isStaffPanel ? '#ffffff' : 'var(--ss-text-secondary)',
                   cursor: 'pointer',
                   transition: 'all 150ms ease',
                 }}
               >
                 Staff Floor
               </button>
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    switchRole(ROLES.ADMIN);
-                  }}
-                  style={{
-                    padding: '0.25rem 0.6rem',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    borderRadius: 'var(--ss-radius-xs)',
-                    border: 'none',
-                    background: role === ROLES.ADMIN ? 'var(--ss-warning)' : 'transparent',
-                    color: role === ROLES.ADMIN ? '#000000' : 'var(--ss-text-secondary)',
-                    cursor: 'pointer',
-                    transition: 'all 150ms ease',
-                  }}
-                >
-                  Admin
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  switchRole(ROLES.ADMIN);
+                  window.location.hash = '#/admin';
+                }}
+                style={{
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--ss-radius-xs)',
+                  border: 'none',
+                  background: isAdminPanel ? 'var(--ss-warning)' : 'transparent',
+                  color: isAdminPanel ? '#000000' : 'var(--ss-text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'all 150ms ease',
+                }}
+              >
+                Admin
+              </button>
             </div>
           </div>
         )}
@@ -566,19 +565,6 @@ export const Header = ({ onResetData, isStaffPanel = false, onNavigateTab }) => 
             </div>
           )}
         </div>
-
-        {/* 1-Click Demo Reset Button */}
-        {onResetData && (
-          <button
-            type="button"
-            onClick={onResetData}
-            title="Reset dataset back to baseline demo state"
-            className="ss-btn ss-btn-ghost"
-            style={{ fontSize: 'var(--ss-text-xs)', padding: '0.4rem 0.6rem' }}
-          >
-            ↺ Reset
-          </button>
-        )}
 
         {/* Operator Badge with Interactive Profile Dropdown */}
         <div style={{ position: 'relative' }} ref={profileMenuRef}>

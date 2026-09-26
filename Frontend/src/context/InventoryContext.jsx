@@ -11,6 +11,14 @@ import {
   INITIAL_WAREHOUSES,
   INITIAL_SUPPLIERS,
 } from '../services/mockData';
+import {
+  INITIAL_SYSTEM_USERS,
+  INITIAL_CATEGORIES,
+  INITIAL_UOM,
+  INITIAL_LOCATIONS,
+  INITIAL_SYSTEM_ACTIVITY,
+  INITIAL_SYSTEM_SETTINGS,
+} from '../services/adminMockData';
 
 const InventoryContext = createContext(null);
 
@@ -26,7 +34,14 @@ const STORAGE_KEYS = {
   WAREHOUSES: 'stocksense_warehouses_v1',
   SUPPLIERS: 'stocksense_suppliers_v1',
   NOTIFICATIONS: 'stocksense_notifications_v1',
+  USERS: 'stocksense_users_v1',
+  CATEGORIES: 'stocksense_categories_v1',
+  UOM: 'stocksense_uom_v1',
+  LOCATIONS: 'stocksense_locations_v1',
+  SYSTEM_ACTIVITY: 'stocksense_activity_v1',
+  ADMIN_SETTINGS: 'stocksense_admin_settings_v1',
 };
+
 
 export const INITIAL_NOTIFICATIONS = [
   {
@@ -125,6 +140,31 @@ export const InventoryProvider = ({ children }) => {
     loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS)
   );
 
+  // Admin & Governance State
+  const [users, setUsers] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.USERS, INITIAL_SYSTEM_USERS)
+  );
+
+  const [categories, setCategories] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES)
+  );
+
+  const [uomList, setUomList] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.UOM, INITIAL_UOM)
+  );
+
+  const [locations, setLocations] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.LOCATIONS, INITIAL_LOCATIONS)
+  );
+
+  const [systemActivity, setSystemActivity] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SYSTEM_ACTIVITY, INITIAL_SYSTEM_ACTIVITY)
+  );
+
+  const [adminSettings, setAdminSettings] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.ADMIN_SETTINGS, INITIAL_SYSTEM_SETTINGS)
+  );
+
   // Sync state to localStorage whenever modified
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -133,6 +173,30 @@ export const InventoryProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications));
   }, [notifications]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+  }, [users]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CATEGORIES, JSON.stringify(categories));
+  }, [categories]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.UOM, JSON.stringify(uomList));
+  }, [uomList]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LOCATIONS, JSON.stringify(locations));
+  }, [locations]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SYSTEM_ACTIVITY, JSON.stringify(systemActivity));
+  }, [systemActivity]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.ADMIN_SETTINGS, JSON.stringify(adminSettings));
+  }, [adminSettings]);
 
   // Notifications Helpers
   const addNotification = (notif) => {
@@ -214,7 +278,15 @@ export const InventoryProvider = ({ children }) => {
     setZones(INITIAL_ZONES);
     setSettings(INITIAL_SETTINGS);
     setNotifications(INITIAL_NOTIFICATIONS);
+    setUsers(INITIAL_SYSTEM_USERS);
+    setCategories(INITIAL_CATEGORIES);
+    setUomList(INITIAL_UOM);
+    setLocations(INITIAL_LOCATIONS);
+    setSystemActivity(INITIAL_SYSTEM_ACTIVITY);
+    setAdminSettings(INITIAL_SYSTEM_SETTINGS);
+    setWarehouses(INITIAL_WAREHOUSES);
   };
+
 
   // Helper to record immutable ledger entries
   const recordLedgerEntry = ({ type, reference, sku, productName, source, destination, qtyChange, balanceAfter, operator, note }) => {
@@ -313,17 +385,19 @@ export const InventoryProvider = ({ children }) => {
   // =========================================================================
   const addWarehouse = (whData) => {
     const newWh = {
-      id: `wh-${Date.now().toString().slice(-4)}`,
-      code: whData.code.toUpperCase(),
+      id: whData.id || `wh-${Date.now().toString().slice(-4)}`,
+      code: (whData.code || 'WH').toUpperCase(),
       name: whData.name,
       city: whData.city || 'Regional Center',
+      state: whData.state || 'CA',
       address: whData.address || 'Industrial Parkway',
-      capacity: whData.capacity || '1,000 Pallets',
-      occupancyPct: 50,
-      status: 'ONLINE',
+      capacity: whData.capacity || '10,000 units',
+      occupancyPct: whData.occupancyPct || 50,
+      status: whData.status || 'ACTIVE',
       manager: whData.manager || 'Sarah Chen',
+      ...whData,
     };
-    setWarehouses((prev) => [newWh, ...prev]);
+    setWarehouses((prev) => [...prev, newWh]);
     return newWh;
   };
 
@@ -1160,6 +1234,179 @@ export const InventoryProvider = ({ children }) => {
   };
 
   // =========================================================================
+  // 7. ADMIN & SYSTEM GOVERNANCE HANDLERS
+  // =========================================================================
+  const recordSystemActivity = (actor, action, details, severity = 'INFO') => {
+    const newAct = {
+      id: `act-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: 'Just now',
+      actor: actor || 'Marcus Vance (Admin)',
+      action,
+      details,
+      severity,
+    };
+    setSystemActivity((prev) => [newAct, ...prev]);
+  };
+
+  // User Management
+  const addUser = (newUser) => {
+    const userWithId = {
+      id: newUser.id || `usr-${Date.now().toString().slice(-4)}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      status: newUser.status || 'ACTIVE',
+      avatar: (newUser.name || 'User').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase(),
+      lastActive: 'Never logged in',
+      ...newUser,
+    };
+    setUsers((prev) => [userWithId, ...prev]);
+    recordSystemActivity('Marcus Vance (Admin)', 'USER_CREATED', `Invited new operator ${userWithId.name} (${userWithId.role}).`, 'INFO');
+    return userWithId;
+  };
+
+  const editUser = (id, updatedFields) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updatedFields } : u))
+    );
+    recordSystemActivity('Marcus Vance (Admin)', 'USER_UPDATED', `Updated profile/role details for operator ID ${id}.`, 'INFO');
+  };
+
+  const deleteUser = (id) => {
+    const target = users.find((u) => u.id === id);
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    recordSystemActivity('Marcus Vance (Admin)', 'USER_DELETED', `Revoked credentials and deleted user ${target?.name || id}.`, 'WARNING');
+  };
+
+  const approveUser = (id, assignedRole, facility) => {
+    let approvedTarget = null;
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === id) {
+          approvedTarget = {
+            ...u,
+            status: 'ACTIVE',
+            role: assignedRole || u.role,
+            facility: facility || u.facility,
+            approvedAt: 'Just now',
+            approvedBy: 'Marcus Vance (Admin)',
+          };
+          return approvedTarget;
+        }
+        return u;
+      })
+    );
+    recordSystemActivity(
+      'Marcus Vance (Admin)',
+      'USER_APPROVED',
+      `Admin approved access for applicant ${approvedTarget?.name || id} with role ${assignedRole || approvedTarget?.role}.`,
+      'SUCCESS'
+    );
+    addNotification({
+      type: 'USER_APPROVED',
+      title: `✓ Operator Approved: ${approvedTarget?.name || 'Applicant'}`,
+      message: `Marcus Vance authorized account for ${approvedTarget?.name || id} as ${assignedRole || approvedTarget?.role}. Panel clearance active.`,
+      urgency: 'NORMAL',
+      timestamp: 'Just now',
+      targetRole: 'ALL',
+    });
+  };
+
+  const updateUserStatus = (id, newStatus) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, status: newStatus } : u))
+    );
+    const target = users.find((u) => u.id === id);
+    recordSystemActivity(
+      'Marcus Vance (Admin)',
+      'STATUS_CHANGE',
+      `Changed user status for ${target?.name || id} to ${newStatus}.`,
+      newStatus === 'SUSPENDED' ? 'WARNING' : 'INFO'
+    );
+  };
+
+  // Categories Management
+  const addCategory = (newCat) => {
+    const catObj = {
+      id: newCat.id || `cat-${Date.now().toString().slice(-4)}`,
+      skuCount: 0,
+      status: 'ACTIVE',
+      ...newCat,
+    };
+    setCategories((prev) => [...prev, catObj]);
+    recordSystemActivity('Marcus Vance (Admin)', 'CATEGORY_ADDED', `Created product category ${catObj.name} [${catObj.code}].`, 'INFO');
+    return catObj;
+  };
+
+  const editCategory = (id, updatedFields) => {
+    setCategories((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, ...updatedFields } : c))
+    );
+  };
+
+  const deleteCategory = (id) => {
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  // Units of Measure (UOM) Management
+  const addUom = (newUom) => {
+    const uomObj = {
+      id: newUom.id || `uom-${Date.now().toString().slice(-4)}`,
+      status: 'ACTIVE',
+      decimals: 0,
+      isBase: false,
+      ...newUom,
+    };
+    setUomList((prev) => [...prev, uomObj]);
+    recordSystemActivity('Marcus Vance (Admin)', 'UOM_ADDED', `Added unit of measure ${uomObj.name} (${uomObj.symbol}).`, 'INFO');
+    return uomObj;
+  };
+
+  const editUom = (id, updatedFields) => {
+    setUomList((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updatedFields } : u))
+    );
+  };
+
+  const deleteUom = (id) => {
+    setUomList((prev) => prev.filter((u) => u.id !== id));
+  };
+
+  // Locations Management
+  const addLocation = (newLoc) => {
+    const locObj = {
+      id: newLoc.id || `loc-${Date.now().toString().slice(-4)}`,
+      currentQty: 0,
+      sku: null,
+      status: 'VACANT',
+      ...newLoc,
+    };
+    setLocations((prev) => [...prev, locObj]);
+    recordSystemActivity('Marcus Vance (Admin)', 'LOCATION_ADDED', `Configured storage location bin ${locObj.code} in ${locObj.warehouse}.`, 'INFO');
+    return locObj;
+  };
+
+  const editLocation = (id, updatedFields) => {
+    setLocations((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...updatedFields } : l))
+    );
+  };
+
+  const deleteLocation = (id) => {
+    setLocations((prev) => prev.filter((l) => l.id !== id));
+  };
+
+  const vacateLocation = (id) => {
+    setLocations((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, currentQty: 0, sku: null, status: 'VACANT' } : l))
+    );
+  };
+
+  // Settings Management
+  const updateAdminSettings = (fields) => {
+    setAdminSettings((prev) => ({ ...prev, ...fields }));
+    recordSystemActivity('Marcus Vance (Admin)', 'CONFIG_UPDATED', `Updated system configuration parameters.`, 'INFO');
+  };
+
+  // =========================================================================
   // COMPUTED DYNAMIC KPIS
   // =========================================================================
   const totalStockUnits = products.reduce((acc, p) => acc + (p.onHand || 0), 0);
@@ -1263,6 +1510,36 @@ export const InventoryProvider = ({ children }) => {
         dismissNotification,
         clearAllNotifications,
 
+        // Admin & Governance Exports
+        users,
+        addUser,
+        editUser,
+        deleteUser,
+        approveUser,
+        updateUserStatus,
+
+        categories,
+        addCategory,
+        editCategory,
+        deleteCategory,
+
+        uomList,
+        addUom,
+        editUom,
+        deleteUom,
+
+        locations,
+        addLocation,
+        editLocation,
+        deleteLocation,
+        vacateLocation,
+
+        systemActivity,
+        recordSystemActivity,
+
+        adminSettings,
+        updateAdminSettings,
+
         metrics,
         resetAllData,
       }}
@@ -1270,6 +1547,7 @@ export const InventoryProvider = ({ children }) => {
       {children}
     </InventoryContext.Provider>
   );
+
 };
 
 export const useInventory = () => {

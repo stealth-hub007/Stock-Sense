@@ -9,6 +9,7 @@ import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import DemoStepper from './components/layout/DemoStepper';
 import StaffSidebar from './components/layout/StaffSidebar';
+import AdminSidebar from './components/layout/AdminSidebar';
 
 // Manager Pages
 import InventoryManagerDashboard from './pages/dashboard/InventoryManagerDashboard';
@@ -32,9 +33,21 @@ import StaffTransfersPage from './pages/staff/StaffTransfersPage';
 import StaffStockCountPage from './pages/staff/StaffStockCountPage';
 import StaffProfilePage from './pages/staff/StaffProfilePage';
 
+// Admin Pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminRolesPage from './pages/admin/AdminRolesPage';
+import AdminWarehousesPage from './pages/admin/AdminWarehousesPage';
+import AdminLocationsPage from './pages/admin/AdminLocationsPage';
+import AdminCategoriesPage from './pages/admin/AdminCategoriesPage';
+import AdminUnitsPage from './pages/admin/AdminUnitsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminProfilePage from './pages/admin/AdminProfilePage';
+
 /**
  * Read which panel is active from the URL path or hash.
  * /staff or #/staff => 'staff'
+ * /admin or #/admin => 'admin'
  * /manager or #/manager (or default) => 'manager'
  */
 function getPanelFromUrl() {
@@ -42,6 +55,9 @@ function getPanelFromUrl() {
   const hash = window.location.hash.toLowerCase();
   if (path.includes('/staff') || hash.includes('staff')) {
     return 'staff';
+  }
+  if (path.includes('/admin') || hash.includes('admin')) {
+    return 'admin';
   }
   return 'manager';
 }
@@ -77,7 +93,7 @@ function ManagerPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
-      <Header onResetData={handleResetData} isStaffPanel={false} onNavigateTab={setActiveTab} />
+      <Header onResetData={handleResetData} isStaffPanel={false} isAdminPanel={false} onNavigateTab={setActiveTab} />
       <DemoStepper
         currentStep={getStepNumberForTab(activeTab)}
         onStepClick={(tab) => setActiveTab(tab)}
@@ -122,7 +138,7 @@ function StaffPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
-      <Header onResetData={handleResetData} isStaffPanel={true} onNavigateTab={setActiveTab} />
+      <Header onResetData={handleResetData} isStaffPanel={true} isAdminPanel={false} onNavigateTab={setActiveTab} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <StaffSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
         <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
@@ -141,7 +157,46 @@ function StaffPanel() {
 }
 
 // =========================================================================
-// ROOT ROUTER — hash-based, NO LOGIN REQUIRED
+// ADMINISTRATOR PANEL (PHASE 17 & 18)
+// =========================================================================
+function AdminPanel() {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const { resetAllData } = useInventory();
+  const { switchRole } = useAuth();
+
+  const handleResetData = () => {
+    resetAllData();
+    setActiveTab('dashboard');
+  };
+
+  // Sync role to ADMIN when this panel is active
+  useEffect(() => {
+    switchRole(ROLES.ADMIN);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', maxHeight: '100vh', overflow: 'hidden', backgroundColor: 'var(--ss-bg-app)' }}>
+      <Header onResetData={handleResetData} isStaffPanel={false} isAdminPanel={true} onNavigateTab={setActiveTab} />
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
+        <AdminSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+        <main style={{ flex: 1, overflowY: 'auto', minHeight: 0, backgroundColor: 'var(--ss-bg-app)' }}>
+          {activeTab === 'dashboard' && <AdminDashboard onNavigateTab={setActiveTab} />}
+          {activeTab === 'users' && <AdminUsersPage />}
+          {activeTab === 'roles' && <AdminRolesPage />}
+          {activeTab === 'warehouses' && <AdminWarehousesPage />}
+          {activeTab === 'locations' && <AdminLocationsPage />}
+          {activeTab === 'categories' && <AdminCategoriesPage />}
+          {activeTab === 'units' && <AdminUnitsPage />}
+          {activeTab === 'settings' && <AdminSettingsPage onResetData={handleResetData} />}
+          {activeTab === 'profile' && <AdminProfilePage />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// ROOT ROUTER — hash-based & path-based, NO LOGIN REQUIRED
 // =========================================================================
 function RootApp() {
   const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
@@ -161,6 +216,10 @@ function RootApp() {
     return <StaffPanel />;
   }
 
+  if (currentPanel === 'admin') {
+    return <AdminPanel />;
+  }
+
   return <ManagerPanel />;
 }
 
@@ -173,3 +232,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

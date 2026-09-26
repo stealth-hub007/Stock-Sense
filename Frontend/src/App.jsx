@@ -65,12 +65,11 @@ import AuthPage from './pages/auth/AuthPage';
  * /manager or #/manager (or default) => 'manager'
  */
 function getPanelFromUrl() {
-  const path = window.location.pathname.toLowerCase();
   const hash = window.location.hash.toLowerCase();
-  if (path.includes('/staff') || hash.includes('staff')) {
+  if (hash.includes('staff')) {
     return 'staff';
   }
-  if (path.includes('/admin') || hash.includes('admin')) {
+  if (hash.includes('admin')) {
     return 'admin';
   }
   return 'manager';

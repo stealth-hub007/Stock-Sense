@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ROLE_LABELS } from '../../constants/roles';
 
 export const StaffProfilePage = () => {
-  const { user, role, activeWarehouse } = useAuth();
+  const { user, role, activeWarehouse, logout } = useAuth();
 
   // Local editable staff profile states
   const [isEditing, setIsEditing] = useState(false);
@@ -359,6 +359,19 @@ export const StaffProfilePage = () => {
               Cannot approve write-offs (Routes to Manager)
             </div>
           </div>
+        </div>
+
+        {/* Terminal Sign Out */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--ss-border)' }}>
+          <button
+            type="button"
+            onClick={logout}
+            className="ss-btn ss-btn-ghost"
+            style={{ fontSize: '0.8125rem', color: 'var(--ss-danger)', gap: '0.375rem' }}
+          >
+            <span>🚪</span>
+            <span>Sign Out / Lock Terminal</span>
+          </button>
         </div>
 
       </div>

@@ -53,23 +53,10 @@ import AdminUnitsPage from './pages/admin/AdminUnitsPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 
-/**
- * Read which panel is active from the URL path or hash.
- * /staff or #/staff => 'staff'
- * /admin or #/admin => 'admin'
- * /manager or #/manager (or default) => 'manager'
- */
-function getPanelFromUrl() {
-  const path = window.location.pathname.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
-  if (path.includes('/staff') || hash.includes('staff')) {
-    return 'staff';
-  }
-  if (path.includes('/admin') || hash.includes('admin')) {
-    return 'admin';
-  }
-  return 'manager';
-}
+// Authentication Pages
+import AuthPage from './pages/auth/AuthPage';
+
+// Panel is controlled by React state only — URL stays as localhost:5173
 
 // =========================================================================
 // INVENTORY MANAGER PANEL
@@ -137,7 +124,6 @@ function ManagerPanel() {
 function StaffPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -175,7 +161,6 @@ function StaffPanel() {
 function AdminPanel() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { resetAllData } = useInventory();
-  const { switchRole } = useAuth();
 
   const handleResetData = () => {
     resetAllData();
@@ -216,11 +201,18 @@ function AdminPanel() {
 }
 
 // =========================================================================
-// ROOT ROUTER — hash-based & path-based, NO LOGIN REQUIRED
+// ROOT ROUTER — pure state-based, URL always stays as localhost:5173
 // =========================================================================
 function RootApp() {
-  const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
-  const { role } = useAuth();
+const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
+  const { user, isAuthenticated, activePanel, role } = useAuth();
+
+  // Show Login / Register when not authenticated
+  if (!isAuthenticated || !user) {
+    return <AuthPage />;
+  }
+
+  const userRole = user?.assignedRole || user?.role || role;
 
   // Listen for URL changes
   useEffect(() => {
@@ -234,7 +226,7 @@ function RootApp() {
   }, []);
 
   // Security Enforcement: Staff are locked to the Staff Floor
-  if (role === ROLES.WAREHOUSE_STAFF) {
+  if (userRole === ROLES.WAREHOUSE_STAFF) {
     if (currentPanel !== 'staff') {
       window.location.hash = '#/staff';
     }
@@ -245,7 +237,7 @@ function RootApp() {
     return <StaffPanel />;
   }
 
-if (currentPanel === 'admin') {
+  if (currentPanel === 'admin' || (activePanel === 'admin' && userRole === ROLES.ADMIN)) {
     return <AdminPanel />;
   }
 
@@ -254,6 +246,27 @@ if (currentPanel === 'admin') {
       <ManagerPanel />
     </BrowserRouter>
   );
+    return <AdminPanel />;
+  }
+  if (activePanel === 'staff' || userRole === ROLES.WAREHOUSE_STAFF) {
+    return <StaffPanel />;
+  }
+  if (activePanel === 'manager' && (userRole === ROLES.ADMIN || userRole === ROLES.INVENTORY_MANAGER)) {
+    return <ManagerPanel />;
+  }
+
+<<<<<<< HEAD
+  return (
+    <BrowserRouter>
+      <ManagerPanel />
+    </BrowserRouter>
+  );
+=======
+  // Fallback defaults
+  if (userRole === ROLES.ADMIN) return <AdminPanel />;
+  if (userRole === ROLES.WAREHOUSE_STAFF) return <StaffPanel />;
+  return <ManagerPanel />;
+>>>>>>> origin/Frontend
 }
 
 export default function App() {

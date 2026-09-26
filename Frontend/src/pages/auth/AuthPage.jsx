@@ -233,10 +233,10 @@ export const AuthPage = ({ onLoginSuccess }) => {
         id: `op-${userData.id}`,
         name: userData.name,
         email: userData.email,
-        role: userData.role === 'ADMIN' ? ROLES.ADMIN : userData.role === 'MANAGER' ? ROLES.INVENTORY_MANAGER : ROLES.WAREHOUSE_STAFF,
+        role: userData.role.toUpperCase() === 'ADMIN' ? ROLES.ADMIN : userData.role.toUpperCase() === 'MANAGER' ? ROLES.INVENTORY_MANAGER : ROLES.WAREHOUSE_STAFF,
         status: userData.status,
         avatar: userData.name.substring(0, 2).toUpperCase(),
-        facility: userData.role === 'ADMIN' ? 'Global Operations HQ' : 'WH-01 Main DC (San Francisco)'
+        facility: userData.role.toUpperCase() === 'ADMIN' ? 'Global Operations HQ' : 'WH-01 Main DC (San Francisco)'
       };
       
       toast$(`Welcome back, ${sessionUser.name}!`, 'success');

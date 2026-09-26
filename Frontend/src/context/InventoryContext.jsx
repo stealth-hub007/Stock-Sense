@@ -537,6 +537,13 @@ export const InventoryProvider = ({ children }) => {
   // =========================================================================
   const addReceipt = (receiptData) => {
     const prod = products.find((p) => p.sku === receiptData.sku) || products[0];
+    try {
+      fetch(`${API_BASE_URL}/receipts/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supplier_id: 1, status: 'Draft', product_id: parseInt(prod.id) || 1, quantity: parseInt(receiptData.expectedQty, 10) || 20 })
+      }).catch(e => console.error(e));
+    } catch(e) {}
     const newReceipt = {
       id: `rec-${Date.now().toString().slice(-4)}`,
       poNumber: receiptData.poNumber || `PO-${Math.floor(9000 + Math.random() * 1000)}`,
@@ -704,6 +711,13 @@ export const InventoryProvider = ({ children }) => {
   // =========================================================================
   const addTransfer = (transferData) => {
     const prod = products.find((p) => p.sku === transferData.sku) || products[0];
+    try {
+      fetch(`${API_BASE_URL}/transfers/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_location_id: 1, destination_location_id: 2, status: 'Scheduled', product_id: parseInt(prod.id) || 1, quantity: parseInt(transferData.qty, 10) || 10 })
+      }).catch(e => console.error(e));
+    } catch(e) {}
     const newTransfer = {
       id: `tr-${Date.now().toString().slice(-4)}`,
       transferNo: transferData.transferNo || `TR-${Math.floor(7000 + Math.random() * 2000)}`,
@@ -921,6 +935,13 @@ export const InventoryProvider = ({ children }) => {
   // =========================================================================
   const addDelivery = (deliveryData) => {
     const prod = products.find((p) => p.sku === deliveryData.sku) || products[0];
+    try {
+      fetch(`${API_BASE_URL}/deliveries/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customer_name: deliveryData.customer || 'New Customer', status: 'Draft', product_id: parseInt(prod.id) || 1, quantity: parseInt(deliveryData.qty, 10) || 5 })
+      }).catch(e => console.error(e));
+    } catch(e) {}
     const qty = parseInt(deliveryData.qty, 10) || 5;
     const hasEnoughStock = (prod?.available ?? 0) >= qty;
     const initialStatus = deliveryData.status || (hasEnoughStock ? 'READY_TO_DISPATCH' : 'AWAITING_STOCK');

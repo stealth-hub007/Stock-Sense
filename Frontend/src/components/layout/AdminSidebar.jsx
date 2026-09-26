@@ -24,6 +24,55 @@ export const AdminSidebar = ({ activeTab, onSelectTab }) => {
         },
       ],
     },
+
+    {
+      title: 'OPERATIONS & INVENTORY',
+      items: [
+        {
+          id: 'products',
+          label: 'Products Catalog',
+          icon: '📦',
+          badge: null,
+        },
+        {
+          id: 'receipts',
+          label: 'Inbound Receipts',
+          icon: '📥',
+          badge: null,
+        },
+        {
+          id: 'deliveries',
+          label: 'Delivery Orders',
+          icon: '📤',
+          badge: null,
+        },
+        {
+          id: 'transfers',
+          label: 'Internal Transfers',
+          icon: '🔄',
+          badge: null,
+        },
+        {
+          id: 'adjustments',
+          label: 'Stock Adjustments',
+          icon: '⚖️',
+          badge: null,
+        },
+        {
+          id: 'ledger',
+          label: 'Stock Ledger',
+          icon: '📋',
+          badge: null,
+        },
+        {
+          id: 'reports',
+          label: 'Reports & Analytics',
+          icon: '📈',
+          badge: null,
+        },
+      ],
+    },
+
     {
       title: 'MANAGEMENT',
       items: [

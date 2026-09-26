@@ -101,3 +101,20 @@ async def advance_delivery(delivery_id: int, db: AsyncSession = Depends(get_db))
                 
     await db.commit()
     return {"status": "success", "new_status": next_status}
+
+from pydantic import BaseModel
+class DeliveryCreate(BaseModel):
+    customer_name: str = "New Customer"
+    status: str = "Draft"
+    product_id: int = 1
+    quantity: int = 5
+
+@router.post("/create")
+async def create_delivery(data: DeliveryCreate, db: AsyncSession = Depends(get_db)):
+    d = models.Delivery(customer_name=data.customer_name, status=data.status)
+    db.add(d)
+    await db.flush()
+    di = models.DeliveryItem(delivery_id=d.id, product_id=data.product_id, quantity=data.quantity)
+    db.add(di)
+    await db.commit()
+    return {"id": d.id}

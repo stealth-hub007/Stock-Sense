@@ -24,8 +24,8 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
   const notificationMenuRef = useRef(null);
 
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
-  const isAdmin = isAdminPanel || role === ROLES.ADMIN;
-  const isStaff = isStaffPanel || role === ROLES.WAREHOUSE_STAFF;
+  const isAdmin = role === ROLES.ADMIN;
+  const isStaff = role === ROLES.WAREHOUSE_STAFF;
 
   const unreadCount = (notifications || []).filter((n) => !n.read).length;
   const hasUrgentApproval = (notifications || []).some(
@@ -201,7 +201,10 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
       {/* Right Controls: Panel Switcher (Manager/Admin Only) & Operator Profile */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--ss-space-4)' }}>
         {/* Interactive Panel Switcher — STRICTLY HIDDEN ON STAFF FLOOR PANEL */}
-        {!isStaff && (
+        
+        {/* Full Interactive Panel Switcher - Only on Manager/Admin Dashboards */}
+        {!isStaff && !isStaffPanel && (
+
           <div
             style={{
               display: 'flex',
@@ -239,7 +242,6 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               <button
                 type="button"
                 onClick={() => {
-                  switchRole(ROLES.INVENTORY_MANAGER);
                   window.location.hash = '#/manager';
                 }}
                 style={{
@@ -259,7 +261,6 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               <button
                 type="button"
                 onClick={() => {
-                  switchRole(ROLES.WAREHOUSE_STAFF);
                   window.location.hash = '#/staff';
                 }}
                 style={{
@@ -279,7 +280,6 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
               <button
                 type="button"
                 onClick={() => {
-                  switchRole(ROLES.ADMIN);
                   window.location.hash = '#/admin';
                 }}
                 style={{
@@ -300,7 +300,9 @@ export const Header = ({ onResetData, isStaffPanel = false, isAdminPanel = false
           </div>
         )}
 
-        {/* Real-time Notification Bell & Live Approvals Activity Center */}
+
+        {/* Real-time Notification Bell
+ & Live Approvals Activity Center */}
         <div style={{ position: 'relative' }} ref={notificationMenuRef}>
           <button
             type="button"

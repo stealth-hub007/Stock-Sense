@@ -110,3 +110,20 @@ async def receive_receipt(receipt_id: int, db: AsyncSession = Depends(get_db)):
             
     await db.commit()
     return {"status": "success"}
+
+from pydantic import BaseModel
+class ReceiptCreate(BaseModel):
+    supplier_id: int = 1
+    status: str = "Draft"
+    product_id: int = 1
+    quantity: int = 10
+
+@router.post("/create")
+async def create_receipt(data: ReceiptCreate, db: AsyncSession = Depends(get_db)):
+    r = models.Receipt(supplier_id=data.supplier_id, status=data.status)
+    db.add(r)
+    await db.flush()
+    ri = models.ReceiptItem(receipt_id=r.id, product_id=data.product_id, quantity=data.quantity)
+    db.add(ri)
+    await db.commit()
+    return {"id": r.id}

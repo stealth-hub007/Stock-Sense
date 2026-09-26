@@ -94,9 +94,9 @@ function ManagerPanel() {
     return 1;
   };
 
-  // Sync role to INVENTORY_MANAGER when this panel is active
+  // Remove forced sync to allow Manager to visit Staff panel
   useEffect(() => {
-    switchRole(ROLES.INVENTORY_MANAGER);
+    // switchRole(ROLES.INVENTORY_MANAGER);
   }, []);
 
   return (
@@ -144,9 +144,9 @@ function StaffPanel() {
     setActiveTab('dashboard');
   };
 
-  // Sync role to WAREHOUSE_STAFF when this panel is active
+  // Remove forced sync to allow Manager to visit Staff panel
   useEffect(() => {
-    switchRole(ROLES.WAREHOUSE_STAFF);
+    // switchRole(ROLES.WAREHOUSE_STAFF);
   }, []);
 
   return (
@@ -182,9 +182,9 @@ function AdminPanel() {
     setActiveTab('dashboard');
   };
 
-  // Sync role to ADMIN when this panel is active
+  // Remove forced sync to allow Manager to visit Staff panel
   useEffect(() => {
-    switchRole(ROLES.ADMIN);
+    // switchRole(ROLES.ADMIN);
   }, []);
 
   return (
@@ -201,7 +201,14 @@ function AdminPanel() {
           {activeTab === 'categories' && <AdminCategoriesPage />}
           {activeTab === 'units' && <AdminUnitsPage />}
           {activeTab === 'settings' && <AdminSettingsPage onResetData={handleResetData} />}
-          {activeTab === 'profile' && <AdminProfilePage />}
+{activeTab === 'profile' && <AdminProfilePage />}
+          {activeTab === 'products' && <ProductsPage />}
+          {activeTab === 'receipts' && <ReceiptsPage />}
+          {activeTab === 'deliveries' && <DeliveriesPage />}
+          {activeTab === 'transfers' && <TransfersPage />}
+          {activeTab === 'adjustments' && <AdjustmentsPage />}
+          {activeTab === 'ledger' && <StockLedgerPage />}
+          {activeTab === 'reports' && <ReportsPage />}
         </main>
       </div>
     </div>
@@ -213,6 +220,7 @@ function AdminPanel() {
 // =========================================================================
 function RootApp() {
   const [currentPanel, setCurrentPanel] = useState(getPanelFromUrl);
+  const { role } = useAuth();
 
   // Listen for URL changes
   useEffect(() => {
@@ -224,6 +232,14 @@ function RootApp() {
       window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
+
+  // Security Enforcement: Staff are locked to the Staff Floor
+  if (role === ROLES.WAREHOUSE_STAFF) {
+    if (currentPanel !== 'staff') {
+      window.location.hash = '#/staff';
+    }
+    return <StaffPanel />;
+  }
 
   if (currentPanel === 'staff') {
     return <StaffPanel />;

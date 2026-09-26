@@ -332,13 +332,13 @@ export const InventoryProvider = ({ children }) => {
       prev.map((r) =>
         r.poNumber === poNumber || r.id === poNumber
           ? {
-              ...r,
-              status: 'RECEIVED',
-              receivedQty: qty,
-              receivedAt: 'Just now',
-              receivedBy: operatorName || 'Sarah Chen (Manager)',
-              readyForTransfer: true,
-            }
+            ...r,
+            status: 'RECEIVED',
+            receivedQty: qty,
+            receivedAt: 'Just now',
+            receivedBy: operatorName || 'Sarah Chen (Manager)',
+            readyForTransfer: true,
+          }
           : r
       )
     );
@@ -380,9 +380,9 @@ export const InventoryProvider = ({ children }) => {
 
     const reorderQty = prod.reorderRule
       ? Math.max(
-          prod.reorderRule.maxStock - prod.onHand,
-          prod.reorderRule.minStock || 50
-        )
+        prod.reorderRule.maxStock - prod.onHand,
+        prod.reorderRule.minStock || 50
+      )
       : Math.max(100 - prod.onHand, 50);
 
     const poNumber = `PO-AUTO-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -507,11 +507,11 @@ export const InventoryProvider = ({ children }) => {
         prev.map((r) =>
           r.poNumber === transfer.linkedPo || r.id === transfer.linkedPo
             ? {
-                ...r,
-                transferredTo: transfer.toLocation,
-                shiftedToWarehouse: transfer.toWarehouse,
-                transferNo: transfer.transferNo,
-              }
+              ...r,
+              transferredTo: transfer.toLocation,
+              shiftedToWarehouse: transfer.toWarehouse,
+              transferNo: transfer.transferNo,
+            }
             : r
         )
       );
@@ -585,12 +585,12 @@ export const InventoryProvider = ({ children }) => {
       prev.map((r) =>
         r.poNumber === poNumber || r.id === poNumber
           ? {
-              ...r,
-              status: 'RECEIVED',
-              transferredTo: destLoc,
-              shiftedToWarehouse: targetStore,
-              transferNo: trNumber,
-            }
+            ...r,
+            status: 'RECEIVED',
+            transferredTo: destLoc,
+            shiftedToWarehouse: targetStore,
+            transferNo: trNumber,
+          }
           : r
       )
     );
@@ -734,11 +734,11 @@ export const InventoryProvider = ({ children }) => {
       prev.map((d) =>
         d.orderNo === orderNo || d.id === orderNo
           ? {
-              ...d,
-              status: targetStatus,
-              [`${targetStatus.toLowerCase()}At`]: 'Just now',
-              [`${targetStatus.toLowerCase()}By`]: operatorName || 'Sarah Chen (Manager)',
-            }
+            ...d,
+            status: targetStatus,
+            [`${targetStatus.toLowerCase()}At`]: 'Just now',
+            [`${targetStatus.toLowerCase()}By`]: operatorName || 'Sarah Chen (Manager)',
+          }
           : d
       )
     );
@@ -771,13 +771,13 @@ export const InventoryProvider = ({ children }) => {
       prev.map((p) =>
         p.sku === delivery.sku
           ? {
-              ...p,
-              onHand: newOnHand,
-              allocated: newAllocated,
-              available: newAvailable,
-              status: newStatus,
-              locations: updatedLocations,
-            }
+            ...p,
+            onHand: newOnHand,
+            allocated: newAllocated,
+            available: newAvailable,
+            status: newStatus,
+            locations: updatedLocations,
+          }
           : p
       )
     );
@@ -787,11 +787,11 @@ export const InventoryProvider = ({ children }) => {
       prev.map((d) =>
         d.orderNo === orderNo || d.id === orderNo
           ? {
-              ...d,
-              status: 'DISPATCHED',
-              dispatchedAt: 'Just now',
-              dispatchedBy: operatorName || 'Sarah Chen (Manager)',
-            }
+            ...d,
+            status: 'DISPATCHED',
+            dispatchedAt: 'Just now',
+            dispatchedBy: operatorName || 'Sarah Chen (Manager)',
+          }
           : d
       )
     );
@@ -883,6 +883,7 @@ export const InventoryProvider = ({ children }) => {
   const addAdjustment = (adjData) => {
     const prod = products.find((p) => p.sku === adjData.sku) || products[0];
     const qty = parseInt(adjData.delta, 10) || 0;
+    const isPendingApproval = adjData.requiresApproval || adjData.status === 'PENDING_APPROVAL';
     const newOnHand = Math.max(0, prod.onHand + qty);
     const newStatus = newOnHand === 0 ? 'OUT_OF_STOCK' : newOnHand <= prod.minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
 
@@ -892,40 +893,115 @@ export const InventoryProvider = ({ children }) => {
       sku: prod.sku,
       productName: prod.name,
       location: adjData.location || prod.primaryLocation,
-      systemQty: prod.onHand,
-      physicalQty: newOnHand,
+      systemQty: adjData.systemQty !== undefined ? adjData.systemQty : prod.onHand,
+      physicalQty: adjData.physicalQty !== undefined ? adjData.physicalQty : newOnHand,
       delta: qty,
       reason: adjData.reason || 'Cycle Count Discrepancy',
       operator: adjData.operator || 'Sarah Chen (Manager)',
-      approvedBy: adjData.approvedBy || 'Sarah Chen (Manager)',
+      approvedBy: isPendingApproval ? null : (adjData.approvedBy || 'Sarah Chen (Manager)'),
       timestamp: 'Just now',
-      status: 'APPROVED',
+      status: isPendingApproval ? 'PENDING_APPROVAL' : 'APPROVED',
+      requiresApproval: isPendingApproval,
+      submittedByRole: adjData.submittedByRole || 'WAREHOUSE_STAFF',
     };
-
-    // Update product count
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.sku === prod.sku ? { ...p, onHand: newOnHand, status: newStatus } : p
-      )
-    );
 
     setAdjustments((prev) => [newAdj, ...prev]);
 
-    // Append to ledger
-    recordLedgerEntry({
-      type: 'ADJUSTMENT',
-      reference: newAdj.adjNumber,
-      sku: newAdj.sku,
-      productName: newAdj.productName,
-      source: newAdj.location,
-      destination: qty < 0 ? 'Scrap Bin / Audit Discrepancy' : 'Physical Recount Inflow',
-      qtyChange: qty,
-      balanceAfter: newOnHand,
-      operator: newAdj.operator,
-      note: `Cycle count adjustment: ${newAdj.reason}`,
-    });
+    // If immediate approval (Manager), update stock and ledger immediately
+    if (!isPendingApproval) {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.sku === prod.sku ? { ...p, onHand: newOnHand, status: newStatus } : p
+        )
+      );
+
+      // Append to ledger
+      recordLedgerEntry({
+        type: 'ADJUSTMENT',
+        reference: newAdj.adjNumber,
+        sku: newAdj.sku,
+        productName: newAdj.productName,
+        source: newAdj.location,
+        destination: qty < 0 ? 'Scrap Bin / Audit Discrepancy' : 'Physical Recount Inflow',
+        qtyChange: qty,
+        balanceAfter: newOnHand,
+        operator: newAdj.operator,
+        note: `Cycle count adjustment: ${newAdj.reason}`,
+      });
+    }
 
     return newAdj;
+  };
+
+  // Manager approves discrepancy submitted by Warehouse Staff
+  const approveAdjustment = (adjId, approverName) => {
+    const adj = adjustments.find((a) => a.id === adjId || a.adjNumber === adjId);
+    if (!adj) return;
+
+    const prod = products.find((p) => p.sku === adj.sku);
+    if (!prod) return;
+
+    const newOnHand = Math.max(0, prod.onHand + adj.delta);
+    const newStatus = newOnHand === 0 ? 'OUT_OF_STOCK' : newOnHand <= prod.minThreshold ? 'LOW_STOCK' : 'IN_STOCK';
+
+    // Update product stock
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.sku === prod.sku
+          ? {
+              ...p,
+              onHand: newOnHand,
+              available: Math.max(0, newOnHand - (p.allocated || 0)),
+              status: newStatus,
+            }
+          : p
+      )
+    );
+
+    // Update adjustment status
+    setAdjustments((prev) =>
+      prev.map((a) =>
+        a.id === adjId || a.adjNumber === adjId
+          ? {
+              ...a,
+              status: 'APPROVED',
+              approvedBy: approverName || 'Sarah Chen (Manager)',
+              approvedAt: 'Just now',
+            }
+          : a
+      )
+    );
+
+    // Record ledger entry
+    recordLedgerEntry({
+      type: 'ADJUSTMENT',
+      reference: adj.adjNumber,
+      sku: adj.sku,
+      productName: adj.productName,
+      source: adj.location,
+      destination: adj.delta < 0 ? 'Cycle Discrepancy (Approved)' : 'Physical Recount Inflow (Approved)',
+      qtyChange: adj.delta,
+      balanceAfter: newOnHand,
+      operator: approverName || 'Sarah Chen (Manager)',
+      note: `Manager approved staff count discrepancy: ${adj.reason} (Counted: ${adj.physicalQty}, System: ${adj.systemQty})`,
+    });
+  };
+
+  // Manager rejects discrepancy
+  const rejectAdjustment = (adjId, rejectorName, reason) => {
+    setAdjustments((prev) =>
+      prev.map((a) =>
+        a.id === adjId || a.adjNumber === adjId
+          ? {
+              ...a,
+              status: 'REJECTED',
+              rejectedBy: rejectorName || 'Sarah Chen (Manager)',
+              rejectReason: reason || 'Discrepancy count rejected upon re-verification',
+              rejectedAt: 'Just now',
+            }
+          : a
+      )
+    );
   };
 
   const editAdjustment = (id, updatedData) => {
@@ -1018,6 +1094,8 @@ export const InventoryProvider = ({ children }) => {
         addAdjustment,
         editAdjustment,
         deleteAdjustment,
+        approveAdjustment,
+        rejectAdjustment,
 
         ledger,
         recordLedgerEntry,

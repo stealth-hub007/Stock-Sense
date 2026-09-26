@@ -237,38 +237,71 @@ export const AuthModal = ({ isOpen, onClose }) => {
         {/* ------------------------------------------------------------- */}
         {authMode === 'LOGIN' && (
           <div>
-            {/* Enterprise Credentials Quick-Fill Banner */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.625rem 0.75rem',
-                backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                border: '1px solid rgba(59, 130, 246, 0.25)',
-                borderRadius: 'var(--ss-radius-md)',
-                marginBottom: '1rem',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  🛡️ Default Inventory Manager
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
-                  sarah.manager@stocksense.io
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginEmail('sarah.manager@stocksense.io');
-                  setLoginPassword('manager123');
+            {/* Enterprise Credentials Quick-Fill Banners */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: 'var(--ss-radius-md)',
                 }}
-                className="ss-btn ss-btn-secondary"
-                style={{ fontSize: '0.6875rem', padding: '0.3rem 0.6rem' }}
               >
-                Auto-fill
-              </button>
+                <div>
+                  <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-success)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    📦 Warehouse Staff (Floor Ops)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+                    alex.operator@stocksense.io
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail('alex.operator@stocksense.io');
+                    setLoginPassword('staff123');
+                  }}
+                  className="ss-btn ss-btn-secondary"
+                  style={{ fontSize: '0.6875rem', padding: '0.25rem 0.6rem' }}
+                >
+                  Auto-fill
+                </button>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.5rem 0.75rem',
+                  backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: 'var(--ss-radius-md)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    🛡️ Inventory Manager (Governance)
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+                    sarah.manager@stocksense.io
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginEmail('sarah.manager@stocksense.io');
+                    setLoginPassword('manager123');
+                  }}
+                  className="ss-btn ss-btn-secondary"
+                  style={{ fontSize: '0.6875rem', padding: '0.25rem 0.6rem' }}
+                >
+                  Auto-fill
+                </button>
+              </div>
             </div>
 
             <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
@@ -370,7 +403,8 @@ export const AuthModal = ({ isOpen, onClose }) => {
                 value={signupRole}
                 onChange={(e) => setSignupRole(e.target.value)}
               >
-                <option value={ROLES.INVENTORY_MANAGER}>Inventory Manager (Full Operations & Ledger Authority)</option>
+                <option value={ROLES.WAREHOUSE_STAFF}>Warehouse Staff (Fast Receiving, Picking, Transfers, Stock Counting)</option>
+                <option value={ROLES.INVENTORY_MANAGER}>Inventory Manager (Full Operations, Approvals & Ledger Authority)</option>
               </select>
             </div>
 

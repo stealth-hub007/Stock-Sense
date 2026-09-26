@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 
 export const AdjustmentsPage = () => {
-  const { adjustments, products, addAdjustment, editAdjustment, deleteAdjustment } = useInventory();
+  const { adjustments, products, addAdjustment, editAdjustment, deleteAdjustment, approveAdjustment, rejectAdjustment } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [reasonFilter, setReasonFilter] = useState('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -370,14 +370,61 @@ export const AdjustmentsPage = () => {
                     </td>
 
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <span className="ss-badge ss-badge-success">✓ {a.status}</span>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px' }}>
-                        By {a.approvedBy}
-                      </div>
+                      {a.status === 'PENDING_APPROVAL' ? (
+                        <div>
+                          <span className="ss-badge ss-badge-warning" style={{ fontWeight: 700 }}>⏳ PENDING APPROVAL</span>
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--ss-warning)', marginTop: '2px', fontWeight: 600 }}>
+                            Staff Count Discrepancy
+                          </div>
+                        </div>
+                      ) : a.status === 'REJECTED' ? (
+                        <div>
+                          <span className="ss-badge ss-badge-danger">✕ REJECTED</span>
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px' }}>
+                            By {a.rejectedBy || 'Manager'}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="ss-badge ss-badge-success">✓ {a.status}</span>
+                          <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px' }}>
+                            By {a.approvedBy}
+                          </div>
+                        </div>
+                      )}
                     </td>
 
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.375rem' }}>
+                        {a.status === 'PENDING_APPROVAL' && (
+                          <>
+                            <button
+                              type="button"
+                              className="ss-btn ss-btn-primary"
+                              onClick={() => {
+                                approveAdjustment(a.id, 'Sarah Chen (Manager)');
+                                showToast(`✓ Discrepancy for ${a.sku} approved! Stock and ledger synchronized.`);
+                              }}
+                              title="Approve Discrepancy & Sync Ledger"
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', backgroundColor: 'var(--ss-success)', borderColor: 'var(--ss-success)' }}
+                            >
+                              ✓ Approve
+                            </button>
+                            <button
+                              type="button"
+                              className="ss-btn ss-btn-ghost"
+                              onClick={() => {
+                                rejectAdjustment(a.id, 'Sarah Chen (Manager)', 'Discrepancy count rejected by manager');
+                                showToast(`✕ Discrepancy for ${a.sku} rejected.`);
+                              }}
+                              title="Reject Discrepancy"
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--ss-danger)' }}
+                            >
+                              ✕
+                            </button>
+                          </>
+                        )}
+
                         {/* Edit Button */}
                         <button
                           type="button"

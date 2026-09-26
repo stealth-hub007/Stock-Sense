@@ -127,23 +127,74 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
-    // If mock credentials or offline:
-    const matched = DEMO_OPERATORS.find((op) => op.email.toLowerCase() === email.toLowerCase());
+    if (!email) return { success: false, error: 'Email is required' };
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Check demo operators
+    const matched = DEMO_OPERATORS.find((op) => op.email.toLowerCase() === cleanEmail);
     if (matched) {
       setCurrentUser(matched);
+      localStorage.setItem('stocksense_operator', JSON.stringify(matched));
       return { success: true, user: matched };
     }
-    // Fallback default
+
+    // 2. Check saved registered users in local storage
+    try {
+      const storedUsers = JSON.parse(localStorage.getItem('stocksense_registered_users') || '[]');
+      const registeredMatch = storedUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (registeredMatch) {
+        setCurrentUser(registeredMatch);
+        localStorage.setItem('stocksense_operator', JSON.stringify(registeredMatch));
+        return { success: true, user: registeredMatch };
+      }
+    } catch (e) {}
+
+    // 3. Fallback: determine role from email or default to WAREHOUSE_STAFF if contains staff/operator
+    const inferredRole = cleanEmail.includes('staff') || cleanEmail.includes('operator') || cleanEmail.includes('floor')
+      ? ROLES.WAREHOUSE_STAFF
+      : cleanEmail.includes('admin')
+      ? ROLES.ADMIN
+      : ROLES.INVENTORY_MANAGER;
+
     const fallbackUser = {
-      ...DEMO_OPERATORS[0],
-      email,
-      name: email.split('@')[0],
-      role: ROLES.INVENTORY_MANAGER,
-      title: 'Inventory Manager',
+      id: `usr-${Date.now().toString().slice(-4)}`,
+      email: cleanEmail,
+      name: cleanEmail.split('@')[0].toUpperCase(),
+      role: inferredRole,
+      title: ROLE_LABELS[inferredRole] || (inferredRole === ROLES.WAREHOUSE_STAFF ? 'Lead Receiving Specialist' : 'Inventory Manager'),
+      facility: activeWarehouse?.name || 'WH-01 Main DC (Bay Area)',
+      avatar: cleanEmail.slice(0, 2).toUpperCase(),
+      shiftStatus: 'Active Shift',
     };
     setCurrentUser(fallbackUser);
     localStorage.setItem('stocksense_operator', JSON.stringify(fallbackUser));
     return { success: true, user: fallbackUser };
+  };
+
+  const register = (userData) => {
+    const initials = userData.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'OP';
+    const role = userData.role || ROLES.WAREHOUSE_STAFF;
+    const newUser = {
+      id: `usr-${Date.now().toString().slice(-4)}`,
+      name: userData.name,
+      email: userData.email,
+      role: role,
+      title: ROLE_LABELS[role] || (role === ROLES.WAREHOUSE_STAFF ? 'Lead Receiving & Putaway Specialist' : 'Operations & Inventory Lead'),
+      facility: userData.facility || activeWarehouse?.name || 'WH-01 Main DC (San Francisco)',
+      avatar: initials,
+      shiftStatus: 'Active Shift',
+    };
+
+    // Store in registered users directory
+    try {
+      const stored = JSON.parse(localStorage.getItem('stocksense_registered_users') || '[]');
+      stored.push(newUser);
+      localStorage.setItem('stocksense_registered_users', JSON.stringify(stored));
+    } catch (e) {}
+
+    setCurrentUser(newUser);
+    localStorage.setItem('stocksense_operator', JSON.stringify(newUser));
+    return { success: true, user: newUser };
   };
 
   const logout = () => {
@@ -163,6 +214,7 @@ export const AuthProvider = ({ children }) => {
         switchRole,
         loginAs: (targetRole) => switchRole(targetRole),
         login,
+        register,
         logout,
         activeWarehouse,
         setActiveWarehouse,

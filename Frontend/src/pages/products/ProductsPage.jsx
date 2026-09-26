@@ -12,21 +12,29 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
   const [newSku, setNewSku] = useState('');
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState('Motion & Actuators');
+  const [newUom, setNewUom] = useState('Units');
   const [newCost, setNewCost] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newLocation, setNewLocation] = useState('Rack A-05');
   const [newQty, setNewQty] = useState('');
   const [newMin, setNewMin] = useState(25);
+  const [newReorderPoint, setNewReorderPoint] = useState(35);
+  const [newMaxStock, setNewMaxStock] = useState(200);
+  const [newAutoReorder, setNewAutoReorder] = useState(true);
 
   // Edit SKU Modal
   const [editingProduct, setEditingProduct] = useState(null);
   const [editName, setEditName] = useState('');
   const [editCategory, setEditCategory] = useState('');
+  const [editUom, setEditUom] = useState('Units');
   const [editCost, setEditCost] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editLocation, setEditLocation] = useState('');
   const [editMin, setEditMin] = useState(20);
   const [editOnHand, setEditOnHand] = useState(0);
+  const [editReorderPoint, setEditReorderPoint] = useState(30);
+  const [editMaxStock, setEditMaxStock] = useState(150);
+  const [editAutoReorder, setEditAutoReorder] = useState(true);
 
   const [actionToast, setActionToast] = useState(null);
 
@@ -53,11 +61,18 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
       sku: newSku,
       name: newName,
       category: newCategory,
+      uom: newUom,
       unitCost: newCost,
       unitPrice: newPrice,
       primaryLocation: newLocation,
       onHand: newQty,
       minThreshold: newMin,
+      reorderRule: {
+        minStock: parseInt(newMin, 10) || 10,
+        maxStock: parseInt(newMaxStock, 10) || 200,
+        reorderPoint: parseInt(newReorderPoint, 10) || 25,
+        autoReorder: newAutoReorder,
+      },
     });
     setIsAddModalOpen(false);
     setNewSku('');
@@ -65,18 +80,22 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
     setNewCost('');
     setNewPrice('');
     setNewQty('');
-    showToast(`✓ SKU ${created.sku} added and persisted to localStorage!`);
+    showToast(`✓ SKU ${created.sku} added with Reorder Rules & persisted!`);
   };
 
   const openEditModal = (product) => {
     setEditingProduct(product);
     setEditName(product.name);
     setEditCategory(product.category);
+    setEditUom(product.uom || 'Units');
     setEditCost(product.unitCost);
     setEditPrice(product.unitPrice);
     setEditLocation(product.primaryLocation);
     setEditMin(product.minThreshold);
     setEditOnHand(product.onHand);
+    setEditReorderPoint(product.reorderRule?.reorderPoint || product.minThreshold + 10);
+    setEditMaxStock(product.reorderRule?.maxStock || product.minThreshold * 5);
+    setEditAutoReorder(product.reorderRule?.autoReorder ?? true);
   };
 
   const handleSaveEdit = (e) => {
@@ -86,14 +105,21 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
     editProduct(editingProduct.id, {
       name: editName,
       category: editCategory,
+      uom: editUom,
       unitCost: parseFloat(editCost) || 0,
       unitPrice: parseFloat(editPrice) || 0,
       primaryLocation: editLocation,
       minThreshold: parseInt(editMin, 10) || 10,
       onHand: parseInt(editOnHand, 10) || 0,
+      reorderRule: {
+        minStock: parseInt(editMin, 10) || 10,
+        maxStock: parseInt(editMaxStock, 10) || 200,
+        reorderPoint: parseInt(editReorderPoint, 10) || 25,
+        autoReorder: editAutoReorder,
+      },
     });
 
-    showToast(`✓ SKU ${editingProduct.sku} updated and saved!`);
+    showToast(`✓ SKU ${editingProduct.sku} updated with Reorder Rules & saved!`);
     setEditingProduct(null);
   };
 
@@ -300,8 +326,17 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
 
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <div style={{ fontWeight: 600, color: 'var(--ss-text-primary)' }}>{p.name}</div>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px' }}>
-                        UoM: {p.uom} • Weight: {p.weight}
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <span>UoM: <strong style={{ color: 'var(--ss-text-primary)' }}>{p.uom || 'Units'}</strong></span>
+                        <span>•</span>
+                        <span style={{ color: 'var(--ss-primary)', fontWeight: 600 }}>
+                          Reorder @ {p.reorderRule?.reorderPoint || p.minThreshold} (Max {p.reorderRule?.maxStock || 250})
+                        </span>
+                        {p.reorderRule?.autoReorder && (
+                          <span style={{ fontSize: '0.625rem', padding: '0.1rem 0.35rem', background: 'rgba(34, 197, 94, 0.15)', color: 'var(--ss-success)', borderRadius: '3px', fontWeight: 700 }}>
+                            AUTO-PO
+                          </span>
+                        )}
                       </div>
                     </td>
 
@@ -521,10 +556,28 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
-                    Initial In-Stock Quantity
+                    Unit of Measure (UOM)
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={newUom}
+                    onChange={(e) => setNewUom(e.target.value)}
+                  >
+                    <option value="Units">Units (pcs)</option>
+                    <option value="Kilograms (kg)">Kilograms (kg)</option>
+                    <option value="Boxes (box)">Boxes (box)</option>
+                    <option value="Liters (L)">Liters (L)</option>
+                    <option value="Rolls">Rolls (roll)</option>
+                    <option value="Sets">Sets (set)</option>
+                    <option value="Pallets">Pallets (plt)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Initial In-Stock Qty
                   </label>
                   <input
                     type="number"
@@ -537,7 +590,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
-                    Min Safety Reorder Level
+                    Min Safety Level
                   </label>
                   <input
                     type="number"
@@ -547,6 +600,54 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Reorder Rules Configuration */}
+              <div
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: 'var(--ss-radius-md)',
+                  background: 'var(--ss-bg-app)',
+                  border: '1px solid var(--ss-border)',
+                }}
+              >
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-primary)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  📐 Reorder Rules (Engine Automation)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Reorder Trigger Point
+                    </label>
+                    <input
+                      type="number"
+                      className="ss-input"
+                      value={newReorderPoint}
+                      onChange={(e) => setNewReorderPoint(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Max Stock Capacity
+                    </label>
+                    <input
+                      type="number"
+                      className="ss-input"
+                      value={newMaxStock}
+                      onChange={(e) => setNewMaxStock(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ss-text-secondary)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={newAutoReorder}
+                    onChange={(e) => setNewAutoReorder(e.target.checked)}
+                  />
+                  <span>Enable Automated PO Replenishment when onHand ≤ Reorder Point</span>
+                </label>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -680,7 +781,25 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Unit of Measure (UOM)
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={editUom}
+                    onChange={(e) => setEditUom(e.target.value)}
+                  >
+                    <option value="Units">Units (pcs)</option>
+                    <option value="Kilograms (kg)">Kilograms (kg)</option>
+                    <option value="Boxes (box)">Boxes (box)</option>
+                    <option value="Liters (L)">Liters (L)</option>
+                    <option value="Rolls">Rolls (roll)</option>
+                    <option value="Sets">Sets (set)</option>
+                    <option value="Pallets">Pallets (plt)</option>
+                  </select>
+                </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
                     On Hand Stock
@@ -705,6 +824,54 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Reorder Rules Configuration */}
+              <div
+                style={{
+                  padding: '0.75rem',
+                  borderRadius: 'var(--ss-radius-md)',
+                  background: 'var(--ss-bg-app)',
+                  border: '1px solid var(--ss-border)',
+                }}
+              >
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-primary)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  📐 Reorder Rules (Engine Automation)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Reorder Trigger Point
+                    </label>
+                    <input
+                      type="number"
+                      className="ss-input"
+                      value={editReorderPoint}
+                      onChange={(e) => setEditReorderPoint(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Max Stock Capacity
+                    </label>
+                    <input
+                      type="number"
+                      className="ss-input"
+                      value={editMaxStock}
+                      onChange={(e) => setEditMaxStock(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--ss-text-secondary)', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={editAutoReorder}
+                    onChange={(e) => setEditAutoReorder(e.target.checked)}
+                  />
+                  <span>Enable Automated PO Replenishment when onHand ≤ Reorder Point</span>
+                </label>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>

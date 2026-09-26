@@ -12,6 +12,7 @@ export const Sidebar = ({ activeTab, onSelectTab }) => {
     { key: 'INVENTORY', title: 'INVENTORY MASTER' },
     { key: 'OPERATIONS', title: 'STOCK LIFECYCLE' },
     { key: 'AUDIT', title: 'COMPLIANCE & AUDIT' },
+    { key: 'INTELLIGENCE', title: 'REPORTS & ALERTS' },
     { key: 'FACILITIES', title: 'FACILITY LAYOUT' },
     { key: 'ADMINISTRATION', title: 'GOVERNANCE' },
   ];

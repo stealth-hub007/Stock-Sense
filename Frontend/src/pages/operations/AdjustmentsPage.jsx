@@ -420,34 +420,68 @@ export const AdjustmentsPage = () => {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
-                    Variance Delta (e.g. -2 or +5)
-                  </label>
-                  <input
-                    type="number"
-                    className="ss-input"
-                    value={deltaQty}
-                    onChange={(e) => setDeltaQty(parseInt(e.target.value, 10) || 0)}
-                    required
-                  />
+              <div style={{ padding: '0.75rem', background: 'var(--ss-bg-app)', border: '1px solid var(--ss-border)', borderRadius: 'var(--ss-radius-md)' }}>
+                <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
+                  Workflow 2: Physical Count vs Recorded Stock Comparison
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
-                    Reason Code
-                  </label>
-                  <select
-                    className="ss-select"
-                    value={reasonCode}
-                    onChange={(e) => setReasonCode(e.target.value)}
-                  >
-                    <option value="Physical Damage / Forklift Snag">Physical Damage / Scrap</option>
-                    <option value="Found Unrecorded Stock during Cycle Count">Found Stock</option>
-                    <option value="Defective Batch Quarantine">Defective Batch Quarantine</option>
-                    <option value="Sample Pull for QA Lab">Sample Pull for QA Lab</option>
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Recorded Stock (System)
+                    </label>
+                    <input
+                      type="text"
+                      className="ss-input"
+                      value={`${products.find((p) => p.sku === selectedSku)?.onHand || 0} units`}
+                      disabled
+                      style={{ opacity: 0.85, fontWeight: 700 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                      Physical Count (Actual)
+                    </label>
+                    <input
+                      type="number"
+                      className="ss-input"
+                      value={(products.find((p) => p.sku === selectedSku)?.onHand || 0) + deltaQty}
+                      onChange={(e) => {
+                        const count = parseInt(e.target.value, 10);
+                        const cur = products.find((p) => p.sku === selectedSku)?.onHand || 0;
+                        setDeltaQty(isNaN(count) ? 0 : count - cur);
+                      }}
+                      required
+                    />
+                  </div>
                 </div>
+
+                {/* Live Comparison Result Banner */}
+                {deltaQty === 0 ? (
+                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--ss-radius-sm)', background: 'rgba(34, 197, 94, 0.1)', border: '1px solid var(--ss-success)', color: 'var(--ss-success)', fontSize: '0.75rem', fontWeight: 600 }}>
+                    ✓ Physical Count matches Recorded Stock. No adjustment needed.
+                  </div>
+                ) : (
+                  <div style={{ padding: '0.5rem 0.75rem', borderRadius: 'var(--ss-radius-sm)', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid var(--ss-warning)', color: 'var(--ss-warning-text)', fontSize: '0.75rem', fontWeight: 600 }}>
+                    ⚠️ Discrepancy detected: Variance is {deltaQty > 0 ? `+${deltaQty}` : deltaQty} units. Will create Stock Ledger entry.
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Adjustment Reason Code
+                </label>
+                <select
+                  className="ss-select"
+                  value={reasonCode}
+                  onChange={(e) => setReasonCode(e.target.value)}
+                >
+                  <option value="Physical Damage / Forklift Snag">Physical Damage / Forklift Snag</option>
+                  <option value="Cycle Count Variance / Misplacement">Cycle Count Variance / Misplacement</option>
+                  <option value="Found Unrecorded Stock during Cycle Count">Found Unrecorded Stock</option>
+                  <option value="Defective Batch Quarantine">Defective Batch Quarantine</option>
+                  <option value="Sample Pull for QA Lab">Sample Pull for QA Lab</option>
+                </select>
               </div>
 
               <div

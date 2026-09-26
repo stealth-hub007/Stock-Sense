@@ -3,6 +3,49 @@
  * Fully populated dummy data for all modules: Products, Receipts, Transfers, Deliveries, Adjustments, Ledger, Warehouse, Settings.
  */
 
+export const INITIAL_WAREHOUSES = [
+  {
+    id: 'wh-01',
+    code: 'WH-01',
+    name: 'Main Distribution Center (Bay Area)',
+    city: 'San Francisco, CA',
+    address: '100 Industrial Parkway, Docks 1-12',
+    capacity: '1,500 Pallets',
+    occupancyPct: 78,
+    status: 'ONLINE',
+    manager: 'Sarah Chen',
+  },
+  {
+    id: 'wh-02',
+    code: 'WH-02',
+    name: 'Midwest Regional Logistics Hub',
+    city: 'Chicago, IL',
+    address: '450 Logistics Blvd, Gates A-H',
+    capacity: '2,200 Pallets',
+    occupancyPct: 62,
+    status: 'ONLINE',
+    manager: 'David Miller',
+  },
+  {
+    id: 'wh-03',
+    code: 'WH-03',
+    name: 'Southern Automated Fulfillment Facility',
+    city: 'Dallas, TX',
+    address: '880 Skyway Express Dr, Bays 1-8',
+    capacity: '1,800 Pallets',
+    occupancyPct: 85,
+    status: 'ONLINE',
+    manager: 'Elena Rostova',
+  },
+];
+
+export const INITIAL_SUPPLIERS = [
+  { id: 'sup-01', name: 'Industrial Supplier Co', rating: '4.9/5', leadTimeDays: 2, contact: 'orders@industrialsupply.com' },
+  { id: 'sup-02', name: 'Festo Pneumatics & Controls', rating: '4.8/5', leadTimeDays: 3, contact: 'b2b@festo-controls.com' },
+  { id: 'sup-03', name: 'Omron Global Automation', rating: '5.0/5', leadTimeDays: 1, contact: 'supply@omron-global.com' },
+  { id: 'sup-04', name: 'Siemens Industrial Logistics', rating: '4.7/5', leadTimeDays: 4, contact: 'freight@siemens-logistics.de' },
+];
+
 export const INITIAL_PRODUCTS = [
   {
     id: 'prod-001',
@@ -20,6 +63,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928301',
     weight: '4.2 kg',
+    reorderRule: {
+      minStock: 50,
+      maxStock: 300,
+      reorderPoint: 65,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Zone A (Main Rack)', bin: 'A-02', qty: 100 },
       { zone: 'Zone C (Rapid Dispatch)', bin: 'C-04', qty: 20 },
@@ -41,6 +90,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928302',
     weight: '1.1 kg',
+    reorderRule: {
+      minStock: 40,
+      maxStock: 200,
+      reorderPoint: 50,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Zone B (Bulk Bay)', bin: 'B-01', qty: 28 },
     ],
@@ -61,6 +116,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928303',
     weight: '0.35 kg',
+    reorderRule: {
+      minStock: 25,
+      maxStock: 150,
+      reorderPoint: 35,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Zone C (Rapid Dispatch)', bin: 'C-03', qty: 8 },
     ],
@@ -81,6 +142,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928304',
     weight: '2.8 kg',
+    reorderRule: {
+      minStock: 20,
+      maxStock: 120,
+      reorderPoint: 30,
+      autoReorder: false,
+    },
     locations: [
       { zone: 'Secure Storage Vault', bin: 'V-01', qty: 64 },
     ],
@@ -101,6 +168,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Rolls',
     barcode: '8401928305',
     weight: '8.5 kg',
+    reorderRule: {
+      minStock: 30,
+      maxStock: 100,
+      reorderPoint: 45,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Zone D (Raw Materials)', bin: 'D-02', qty: 42 },
     ],
@@ -121,6 +194,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Sets',
     barcode: '8401928306',
     weight: '0.8 kg',
+    reorderRule: {
+      minStock: 60,
+      maxStock: 350,
+      reorderPoint: 80,
+      autoReorder: false,
+    },
     locations: [
       { zone: 'Zone A (Main Rack)', bin: 'A-14', qty: 180 },
     ],
@@ -141,6 +220,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928307',
     weight: '1.9 kg',
+    reorderRule: {
+      minStock: 20,
+      maxStock: 80,
+      reorderPoint: 25,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Secure Storage Vault', bin: 'V-02', qty: 19 },
     ],
@@ -161,6 +246,12 @@ export const INITIAL_PRODUCTS = [
     uom: 'Units',
     barcode: '8401928308',
     weight: '1.2 kg',
+    reorderRule: {
+      minStock: 35,
+      maxStock: 200,
+      reorderPoint: 50,
+      autoReorder: true,
+    },
     locations: [
       { zone: 'Zone B (Bulk Bay)', bin: 'B-08', qty: 85 },
     ],

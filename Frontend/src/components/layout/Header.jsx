@@ -1,20 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useInventory } from '../../context/InventoryContext';
 import { ROLES, ROLE_LABELS, ROLE_BADGE_STYLES } from '../../constants/roles';
+import { AuthModal } from '../auth/AuthModal';
 
 export const Header = ({ onResetData }) => {
-  const { user, role, switchRole, activeWarehouse, demoOperators } = useAuth();
+  const { user, role, switchRole, demoOperators } = useAuth();
+  const { warehouses, activeWarehouse, setActiveWarehouse } = useInventory();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isWarehouseMenuOpen, setIsWarehouseMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const profileMenuRef = useRef(null);
+  const warehouseMenuRef = useRef(null);
 
   const badgeStyle = ROLE_BADGE_STYLES[role] || ROLE_BADGE_STYLES[ROLES.INVENTORY_MANAGER];
   const isAdmin = role === ROLES.ADMIN;
 
-  // Close profile dropdown on outside click
+  // Close profile and warehouse dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setIsProfileMenuOpen(false);
+      }
+      if (warehouseMenuRef.current && !warehouseMenuRef.current.contains(event.target)) {
+        setIsWarehouseMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -78,32 +87,88 @@ export const Header = ({ onResetData }) => {
           </div>
         </div>
 
-        {/* Facility Selector */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.35rem 0.75rem',
-            background: 'var(--ss-bg-app)',
-            border: '1px solid var(--ss-border)',
-            borderRadius: 'var(--ss-radius-md)',
-            fontSize: 'var(--ss-text-xs)',
-            color: 'var(--ss-text-secondary)',
-          }}
-        >
-          <span style={{ color: 'var(--ss-text-muted)' }}>Facility:</span>
-          <span style={{ fontWeight: 600, color: 'var(--ss-text-primary)' }}>{activeWarehouse.name}</span>
-          <span
+        {/* Interactive Facility / Warehouse Selector */}
+        <div style={{ position: 'relative' }} ref={warehouseMenuRef}>
+          <button
+            type="button"
+            onClick={() => setIsWarehouseMenuOpen(!isWarehouseMenuOpen)}
             style={{
-              display: 'inline-block',
-              width: '6px',
-              height: '6px',
-              borderRadius: '50%',
-              background: 'var(--ss-success)',
-              boxShadow: '0 0 8px var(--ss-success)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.35rem 0.75rem',
+              background: 'var(--ss-bg-app)',
+              border: '1px solid var(--ss-border)',
+              borderRadius: 'var(--ss-radius-md)',
+              fontSize: 'var(--ss-text-xs)',
+              color: 'var(--ss-text-secondary)',
+              cursor: 'pointer',
             }}
-          />
+          >
+            <span style={{ color: 'var(--ss-text-muted)' }}>Facility:</span>
+            <span style={{ fontWeight: 600, color: 'var(--ss-text-primary)' }}>{activeWarehouse?.name || 'Main DC'}</span>
+            <span
+              style={{
+                display: 'inline-block',
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: 'var(--ss-success)',
+                boxShadow: '0 0 8px var(--ss-success)',
+              }}
+            />
+            <span style={{ fontSize: '0.625rem', color: 'var(--ss-text-muted)' }}>▾</span>
+          </button>
+
+          {isWarehouseMenuOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                left: 0,
+                width: '280px',
+                background: 'var(--ss-bg-surface-elevated)',
+                border: '1px solid var(--ss-border)',
+                borderRadius: 'var(--ss-radius-md)',
+                boxShadow: 'var(--ss-shadow-lg)',
+                padding: '0.5rem',
+                zIndex: 100,
+              }}
+            >
+              <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase' }}>
+                Active Warehouse Facility:
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                {(warehouses || []).map((wh) => (
+                  <button
+                    key={wh.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveWarehouse(wh);
+                      setIsWarehouseMenuOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.45rem 0.5rem',
+                      background: activeWarehouse?.id === wh.id ? 'var(--ss-primary-subtle)' : 'transparent',
+                      border: activeWarehouse?.id === wh.id ? '1px solid var(--ss-primary-border)' : '1px solid transparent',
+                      borderRadius: 'var(--ss-radius-sm)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--ss-text-primary)' }}>{wh.name}</div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>{wh.city} • Cap: {wh.capacity}</div>
+                    </div>
+                    {activeWarehouse?.id === wh.id && <span style={{ color: 'var(--ss-primary)', fontWeight: 800 }}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -351,10 +416,27 @@ export const Header = ({ onResetData }) => {
                   </button>
                 ))}
               </div>
+
+              <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--ss-border)' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsProfileMenuOpen(false);
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="ss-btn ss-btn-primary"
+                  style={{ width: '100%', fontSize: '0.75rem', padding: '0.45rem', justifyContent: 'center' }}
+                >
+                  ⚡ Sign In / Sign Up / OTP Reset
+                </button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Authentication Modal (Login, Signup, OTP Password Reset) */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </header>
   );
 };

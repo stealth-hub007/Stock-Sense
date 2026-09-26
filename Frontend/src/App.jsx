@@ -13,6 +13,7 @@ import AdjustmentsPage from './pages/operations/AdjustmentsPage';
 import StockLedgerPage from './pages/ledger/StockLedgerPage';
 import WarehousePage from './pages/warehouse/WarehousePage';
 import SettingsPage from './pages/settings/SettingsPage';
+import ReportsPage from './pages/reports/ReportsPage';
 
 function MainAppShell() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -76,6 +77,10 @@ function MainAppShell() {
 
           {activeTab === 'ledger' && (
             <StockLedgerPage />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportsPage onNavigateTab={setActiveTab} />
           )}
 
           {(activeTab === 'warehouse' || activeTab === 'warehouses') && (

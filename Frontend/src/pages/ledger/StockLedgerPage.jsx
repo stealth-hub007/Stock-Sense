@@ -219,6 +219,48 @@ export const StockLedgerPage = () => {
         </div>
       </div>
 
+      {/* The Stock Ledger Principle Architecture Banner */}
+      <div
+        className="ss-card"
+        style={{
+          padding: '1rem 1.25rem',
+          marginBottom: 'var(--ss-space-4)',
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%)',
+          border: '1px solid var(--ss-border)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>⚙️</span>
+            <span style={{ fontWeight: 800, fontSize: '0.9375rem', color: 'var(--ss-text-primary)' }}>
+              Core Engine Architecture: The Stock Ledger Principle
+            </span>
+          </div>
+          <span className="ss-badge ss-badge-success">IMMUTABLE SINGLE SOURCE OF TRUTH</span>
+        </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--ss-text-secondary)', marginBottom: '0.75rem' }}>
+          <strong>Rule:</strong> Every stock-changing operation (Receipt: <code>+Stock</code>, Delivery: <code>-Stock</code>, Transfer: <code>Location Change</code>, Adjustment: <code>±Stock</code>) MUST create a ledger entry. Modules are never permitted to modify balances directly.
+        </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto', padding: '0.5rem 0' }}>
+          <div style={{ padding: '0.35rem 0.65rem', background: 'var(--ss-bg-surface-elevated)', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-border)', fontSize: '0.75rem', fontWeight: 700 }}>
+            Operations (Receipt/Delivery/Transfer/Adjustment)
+          </div>
+          <span style={{ color: 'var(--ss-primary)', fontWeight: 800 }}>→</span>
+          <div style={{ padding: '0.35rem 0.65rem', background: 'var(--ss-bg-surface-elevated)', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-primary)', color: 'var(--ss-primary)', fontSize: '0.75rem', fontWeight: 700 }}>
+            Inventory Service
+          </div>
+          <span style={{ color: 'var(--ss-primary)', fontWeight: 800 }}>→</span>
+          <div style={{ padding: '0.35rem 0.65rem', background: 'var(--ss-bg-surface-elevated)', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-success)', color: 'var(--ss-success)', fontSize: '0.75rem', fontWeight: 700 }}>
+            Stock Ledger (Audit Trail)
+          </div>
+          <span style={{ color: 'var(--ss-success)', fontWeight: 800 }}>→</span>
+          <div style={{ padding: '0.35rem 0.65rem', background: 'var(--ss-bg-surface-elevated)', borderRadius: 'var(--ss-radius-sm)', border: '1px solid var(--ss-border)', fontSize: '0.75rem', fontWeight: 700 }}>
+            Stock Balances & Availability (Updated)
+          </div>
+        </div>
+      </div>
+
       {/* Filter Toolbar */}
       <div
         className="ss-card"

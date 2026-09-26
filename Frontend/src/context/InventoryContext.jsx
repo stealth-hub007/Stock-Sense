@@ -8,6 +8,8 @@ import {
   INITIAL_ADJUSTMENTS,
   INITIAL_ZONES,
   INITIAL_SETTINGS,
+  INITIAL_WAREHOUSES,
+  INITIAL_SUPPLIERS,
 } from '../services/mockData';
 
 const InventoryContext = createContext(null);
@@ -21,6 +23,8 @@ const STORAGE_KEYS = {
   ADJUSTMENTS: 'stocksense_adjustments_v1',
   ZONES: 'stocksense_zones_v1',
   SETTINGS: 'stocksense_settings_v1',
+  WAREHOUSES: 'stocksense_warehouses_v1',
+  SUPPLIERS: 'stocksense_suppliers_v1',
 };
 
 // Helper to safely load from localStorage with fallback
@@ -68,6 +72,18 @@ export const InventoryProvider = ({ children }) => {
     loadFromStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS)
   );
 
+  const [warehouses, setWarehouses] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.WAREHOUSES, INITIAL_WAREHOUSES)
+  );
+
+  const [activeWarehouse, setActiveWarehouse] = useState(() =>
+    warehouses && warehouses.length > 0 ? warehouses[0] : INITIAL_WAREHOUSES[0]
+  );
+
+  const [suppliers, setSuppliers] = useState(() =>
+    loadFromStorage(STORAGE_KEYS.SUPPLIERS, INITIAL_SUPPLIERS)
+  );
+
   // Sync state to localStorage whenever modified
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(products));
@@ -100,6 +116,14 @@ export const InventoryProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   }, [settings]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.WAREHOUSES, JSON.stringify(warehouses));
+  }, [warehouses]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SUPPLIERS, JSON.stringify(suppliers));
+  }, [suppliers]);
 
   // =========================================================================
   // RESET ALL DATA TO PRISTINE BASELINE
@@ -157,6 +181,12 @@ export const InventoryProvider = ({ children }) => {
       uom: productData.uom || 'Units',
       barcode: productData.barcode || `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
       weight: productData.weight || '1.0 kg',
+      reorderRule: productData.reorderRule || {
+        minStock: min,
+        maxStock: parseInt(productData.maxStock, 10) || min * 5,
+        reorderPoint: parseInt(productData.reorderPoint, 10) || min + 15,
+        autoReorder: productData.autoReorder ?? true,
+      },
       locations: [{ zone: 'Main Storage', bin: productData.primaryLocation || 'Rack A-01', qty }],
     };
 
@@ -192,6 +222,7 @@ export const InventoryProvider = ({ children }) => {
           available: newOnHand - (p.allocated || 0),
           minThreshold: min,
           status: newStatus,
+          reorderRule: updatedData.reorderRule ? { ...p.reorderRule, ...updatedData.reorderRule } : p.reorderRule,
         };
       })
     );
@@ -199,6 +230,50 @@ export const InventoryProvider = ({ children }) => {
 
   const deleteProduct = (id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id && p.sku !== id));
+  };
+
+  // Reorder Trigger helper
+  const triggerReorderPO = (sku, suggestedQty) => {
+    const prod = products.find((p) => p.sku === sku);
+    if (!prod) return;
+    const qty = suggestedQty || (prod.reorderRule?.maxStock ? Math.max(10, prod.reorderRule.maxStock - prod.onHand) : 50);
+    return addReceipt({
+      sku: prod.sku,
+      expectedQty: qty,
+      supplier: 'Industrial Supplier Co',
+      dock: 'Bay 01 - Receiving',
+      targetLocation: prod.primaryLocation,
+      carrier: 'Auto-Replenish Expedited',
+    });
+  };
+
+  // =========================================================================
+  // WAREHOUSES CRUD
+  // =========================================================================
+  const addWarehouse = (whData) => {
+    const newWh = {
+      id: `wh-${Date.now().toString().slice(-4)}`,
+      code: whData.code.toUpperCase(),
+      name: whData.name,
+      city: whData.city || 'Regional Center',
+      address: whData.address || 'Industrial Parkway',
+      capacity: whData.capacity || '1,000 Pallets',
+      occupancyPct: 50,
+      status: 'ONLINE',
+      manager: whData.manager || 'Sarah Chen',
+    };
+    setWarehouses((prev) => [newWh, ...prev]);
+    return newWh;
+  };
+
+  const editWarehouse = (id, updatedData) => {
+    setWarehouses((prev) =>
+      prev.map((w) => (w.id === id || w.code === id ? { ...w, ...updatedData } : w))
+    );
+  };
+
+  const deleteWarehouse = (id) => {
+    setWarehouses((prev) => prev.filter((w) => w.id !== id && w.code !== id));
   };
 
   // =========================================================================
@@ -565,6 +640,17 @@ export const InventoryProvider = ({ children }) => {
 
         settings,
         setSettings,
+
+        warehouses,
+        setWarehouses,
+        activeWarehouse,
+        setActiveWarehouse,
+        addWarehouse,
+        editWarehouse,
+        deleteWarehouse,
+
+        suppliers,
+        triggerReorderPO,
 
         metrics,
         resetAllData,

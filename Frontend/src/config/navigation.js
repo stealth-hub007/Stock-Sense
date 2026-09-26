@@ -13,6 +13,7 @@ export const NAV_ICONS = {
   ADJUSTMENTS: 'adjustments',
   LEDGER: 'ledger',
   WAREHOUSE: 'warehouse',
+  REPORTS: 'reports',
   USERS: 'users',
   SETTINGS: 'settings',
 };
@@ -80,6 +81,14 @@ export const ALL_NAV_ITEMS = [
     icon: NAV_ICONS.LEDGER,
     permission: PERMISSIONS.LEDGER_VIEW,
     category: 'AUDIT',
+  },
+  {
+    id: 'reports',
+    label: 'Reports & Alerts',
+    path: '/reports',
+    icon: NAV_ICONS.REPORTS,
+    badge: '⚡ Alerts',
+    category: 'INTELLIGENCE',
   },
   {
     id: 'warehouse',

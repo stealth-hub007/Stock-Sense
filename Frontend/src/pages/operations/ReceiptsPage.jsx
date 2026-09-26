@@ -1,19 +1,31 @@
 import React, { useState } from 'react';
-import { INITIAL_RECEIPTS_QUEUE, INITIAL_PRODUCTS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const ReceiptsPage = () => {
-  const [receipts, setReceipts] = useState(INITIAL_RECEIPTS_QUEUE);
+  const { receipts, products, addReceipt, editReceipt, deleteReceipt, confirmReceipt } = useInventory();
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingReceipt, setEditingReceipt] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
 
   // New PO receipt form
   const [newPo, setNewPo] = useState('');
   const [newSupplier, setNewSupplier] = useState('');
-  const [newSku, setNewSku] = useState(INITIAL_PRODUCTS[0].sku);
+  const [newSku, setNewSku] = useState(products[0]?.sku || 'MTR-9002');
   const [newQty, setNewQty] = useState(25);
   const [newDock, setNewDock] = useState('Bay 01 - Receiving');
+
+  // Edit PO form
+  const [editSupplier, setEditSupplier] = useState('');
+  const [editQty, setEditQty] = useState(20);
+  const [editDock, setEditDock] = useState('');
+  const [editCarrier, setEditCarrier] = useState('');
+
+  const showToast = (msg) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
 
   const filteredReceipts = receipts.filter((r) => {
     const matchesSearch =
@@ -26,47 +38,53 @@ export const ReceiptsPage = () => {
   });
 
   const handleReceiveShipment = (poNumber, sku, qty) => {
-    setReceipts((prev) =>
-      prev.map((r) =>
-        r.poNumber === poNumber
-          ? {
-              ...r,
-              status: 'RECEIVED',
-              receivedAt: 'Just now',
-              receivedBy: 'Sarah Chen (Manager)',
-            }
-          : r
-      )
-    );
-
-    setSuccessToast(`Inbound PO ${poNumber} marked as RECEIVED! +${qty} units of ${sku} booked into stock ledger.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    confirmReceipt(poNumber, qty, 'Sarah Chen (Manager)');
+    showToast(`✓ Inbound PO ${poNumber} marked as RECEIVED! +${qty} units of ${sku} booked into stock ledger.`);
   };
 
   const handleCreateReceipt = (e) => {
     e.preventDefault();
-    const prod = INITIAL_PRODUCTS.find((p) => p.sku === newSku) || INITIAL_PRODUCTS[0];
-
-    const newReceiptItem = {
-      id: `rec-${Date.now().toString().slice(-4)}`,
-      poNumber: newPo || `PO-${Math.floor(1000 + Math.random() * 9000)}`,
-      supplier: newSupplier || 'Global Industrial Supplies Corp',
-      sku: prod.sku,
-      productName: prod.name,
-      expectedQty: parseInt(newQty, 10) || 20,
+    const created = addReceipt({
+      poNumber: newPo,
+      supplier: newSupplier,
+      sku: newSku,
+      expectedQty: newQty,
       dock: newDock,
-      targetLocation: prod.primaryLocation,
-      eta: 'Today, Incoming',
-      carrier: 'Priority Freight Direct',
-      status: 'READY_TO_RECEIVE',
-    };
-
-    setReceipts([newReceiptItem, ...receipts]);
+    });
     setIsModalOpen(false);
     setNewPo('');
     setNewSupplier('');
-    setSuccessToast(`New inbound PO ${newReceiptItem.poNumber} scheduled for dock arrival.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    showToast(`✓ Inbound PO ${created.poNumber} created & saved to localStorage!`);
+  };
+
+  const openEditModal = (r) => {
+    setEditingReceipt(r);
+    setEditSupplier(r.supplier);
+    setEditQty(r.expectedQty);
+    setEditDock(r.dock);
+    setEditCarrier(r.carrier || 'Express Freight');
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingReceipt) return;
+
+    editReceipt(editingReceipt.id, {
+      supplier: editSupplier,
+      expectedQty: parseInt(editQty, 10) || editingReceipt.expectedQty,
+      dock: editDock,
+      carrier: editCarrier,
+    });
+
+    showToast(`✓ Inbound PO ${editingReceipt.poNumber} updated!`);
+    setEditingReceipt(null);
+  };
+
+  const handleDeleteReceipt = (r) => {
+    if (window.confirm(`Delete Inbound PO ${r.poNumber}?`)) {
+      deleteReceipt(r.id);
+      showToast(`🗑 Inbound PO ${r.poNumber} deleted.`);
+    }
   };
 
   return (
@@ -93,7 +111,7 @@ export const ReceiptsPage = () => {
           <span style={{ color: 'var(--ss-success)', fontSize: '1.25rem' }}>✓</span>
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--ss-success)' }}>
-              Inbound Receipt Recorded
+              Inbound Receipt Operation Complete
             </div>
             <div style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
               {successToast}
@@ -119,9 +137,10 @@ export const ReceiptsPage = () => {
               Inbound Receipts & PO Logistics
             </h1>
             <span className="ss-badge ss-badge-success">LIFECYCLE: STAGE 1 (RECEIVE)</span>
+            <span className="ss-badge ss-badge-info">● PERSISTED CRUD</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
-            Validate incoming vendor shipments, verify packing slips, and book physical inventory onto the ledger.
+            Validate incoming vendor shipments, edit delivery manifests, and confirm arrival with immediate stock increment.
           </p>
         </div>
 
@@ -164,7 +183,7 @@ export const ReceiptsPage = () => {
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL EXPECTED UNITS</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>
-            +{receipts.reduce((acc, r) => acc + r.expectedQty, 0)} Units
+            +{receipts.reduce((acc, r) => acc + (r.expectedQty || 0), 0)} Units
           </div>
         </div>
       </div>
@@ -220,7 +239,7 @@ export const ReceiptsPage = () => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>RECEIVING BAY</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>EXPECTED QTY</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTION</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -304,30 +323,39 @@ export const ReceiptsPage = () => {
                       )}
                     </td>
 
+                    {/* CRUD ACTION BUTTONS */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      {isReady ? (
-                        <button
-                          type="button"
-                          className="ss-btn ss-btn-primary"
-                          onClick={() => handleReceiveShipment(r.poNumber, r.sku, r.expectedQty)}
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-                        >
-                          Receive & Put Away →
-                        </button>
-                      ) : isReceived ? (
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
-                          {r.receivedAt}
-                        </span>
-                      ) : (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                        {isReady ? (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-primary"
+                            onClick={() => handleReceiveShipment(r.poNumber, r.sku, r.expectedQty)}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                          >
+                            Receive →
+                          </button>
+                        ) : null}
+
                         <button
                           type="button"
                           className="ss-btn ss-btn-secondary"
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
-                          onClick={() => handleReceiveShipment(r.poNumber, r.sku, r.expectedQty)}
+                          onClick={() => openEditModal(r)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                          title="Edit Inbound PO"
                         >
-                          Force Dock Intake
+                          ✏️ Edit
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-danger"
+                          onClick={() => handleDeleteReceipt(r)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                          title="Delete Inbound PO"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -420,7 +448,7 @@ export const ReceiptsPage = () => {
                   value={newSku}
                   onChange={(e) => setNewSku(e.target.value)}
                 >
-                  {INITIAL_PRODUCTS.map((p) => (
+                  {products.map((p) => (
                     <option key={p.sku} value={p.sku}>
                       {p.sku} — {p.name}
                     </option>
@@ -468,6 +496,122 @@ export const ReceiptsPage = () => {
                 </button>
                 <button type="submit" className="ss-btn ss-btn-primary">
                   Book Inbound PO
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Inbound PO Modal */}
+      {editingReceipt && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Edit Inbound PO: {editingReceipt.poNumber}
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Modify supplier info, intake dock, or expected delivery units.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setEditingReceipt(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Supplier Name
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editSupplier}
+                  onChange={(e) => setEditSupplier(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Expected Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="ss-input"
+                    value={editQty}
+                    onChange={(e) => setEditQty(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Assigned Dock
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editDock}
+                    onChange={(e) => setEditDock(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Carrier
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editCarrier}
+                  onChange={(e) => setEditCarrier(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setEditingReceipt(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save PO Changes
                 </button>
               </div>
             </form>

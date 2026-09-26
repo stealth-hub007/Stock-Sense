@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
+import { InventoryProvider, useInventory } from './context/InventoryContext';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import DemoStepper from './components/layout/DemoStepper';
@@ -15,11 +16,10 @@ import SettingsPage from './pages/settings/SettingsPage';
 
 function MainAppShell() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [resetKey, setResetKey] = useState(0);
+  const { resetAllData } = useInventory();
 
   const handleResetData = () => {
-    localStorage.removeItem('stocksense_operator');
-    setResetKey((prev) => prev + 1);
+    resetAllData();
     setActiveTab('dashboard');
   };
 
@@ -51,43 +51,43 @@ function MainAppShell() {
 
         <main style={{ flex: 1, overflowY: 'auto', backgroundColor: 'var(--ss-bg-app)' }}>
           {activeTab === 'dashboard' && (
-            <InventoryManagerDashboard key={resetKey} onNavigateTab={setActiveTab} />
+            <InventoryManagerDashboard onNavigateTab={setActiveTab} />
           )}
 
           {activeTab === 'products' && (
-            <ProductsPage key={resetKey} onQuickReceive={() => setActiveTab('receipts')} onQuickTransfer={() => setActiveTab('transfers')} />
+            <ProductsPage onQuickReceive={() => setActiveTab('receipts')} onQuickTransfer={() => setActiveTab('transfers')} />
           )}
 
           {activeTab === 'receipts' && (
-            <ReceiptsPage key={resetKey} />
+            <ReceiptsPage />
           )}
 
           {activeTab === 'transfers' && (
-            <TransfersPage key={resetKey} />
+            <TransfersPage />
           )}
 
           {activeTab === 'deliveries' && (
-            <DeliveriesPage key={resetKey} />
+            <DeliveriesPage />
           )}
 
           {activeTab === 'adjustments' && (
-            <AdjustmentsPage key={resetKey} />
+            <AdjustmentsPage />
           )}
 
           {activeTab === 'ledger' && (
-            <StockLedgerPage key={resetKey} />
+            <StockLedgerPage />
           )}
 
           {(activeTab === 'warehouse' || activeTab === 'warehouses') && (
-            <WarehousePage key={resetKey} />
+            <WarehousePage />
           )}
 
           {activeTab === 'settings' && (
-            <SettingsPage key={resetKey} onResetData={handleResetData} />
+            <SettingsPage onResetData={handleResetData} />
           )}
 
           {activeTab === 'users' && (
-            <SettingsPage key={resetKey} onResetData={handleResetData} />
+            <SettingsPage onResetData={handleResetData} />
           )}
         </main>
       </div>
@@ -98,7 +98,9 @@ function MainAppShell() {
 export default function App() {
   return (
     <AuthProvider>
-      <MainAppShell />
+      <InventoryProvider>
+        <MainAppShell />
+      </InventoryProvider>
     </AuthProvider>
   );
 }

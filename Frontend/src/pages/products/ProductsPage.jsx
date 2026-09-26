@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { INITIAL_PRODUCTS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const { products, addProduct, editProduct, deleteProduct } = useInventory();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // New product form state
+  // Add SKU Modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newSku, setNewSku] = useState('');
   const [newName, setNewName] = useState('');
   const [newCategory, setNewCategory] = useState('Motion & Actuators');
@@ -17,6 +17,23 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
   const [newLocation, setNewLocation] = useState('Rack A-05');
   const [newQty, setNewQty] = useState('');
   const [newMin, setNewMin] = useState(25);
+
+  // Edit SKU Modal
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editCost, setEditCost] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editMin, setEditMin] = useState(20);
+  const [editOnHand, setEditOnHand] = useState(0);
+
+  const [actionToast, setActionToast] = useState(null);
+
+  const showToast = (msg) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(null), 4000);
+  };
 
   const categories = ['ALL', ...new Set(products.map((p) => p.category))];
 
@@ -30,42 +47,96 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
     return matchesSearch && matchesCat && matchesStatus;
   });
 
-  const handleAddProduct = (e) => {
+  const handleCreateProduct = (e) => {
     e.preventDefault();
-    const qty = parseInt(newQty, 10) || 0;
-    const min = parseInt(newMin, 10) || 10;
-    const cost = parseFloat(newCost) || 0;
-    const price = parseFloat(newPrice) || 0;
-
-    const newProd = {
-      id: `prod-${Date.now().toString().slice(-4)}`,
-      sku: newSku.toUpperCase(),
+    const created = addProduct({
+      sku: newSku,
       name: newName,
       category: newCategory,
-      unitCost: cost,
-      unitPrice: price,
-      onHand: qty,
-      allocated: 0,
-      available: qty,
-      minThreshold: min,
-      status: qty === 0 ? 'OUT_OF_STOCK' : qty <= min ? 'LOW_STOCK' : 'IN_STOCK',
+      unitCost: newCost,
+      unitPrice: newPrice,
       primaryLocation: newLocation,
-      uom: 'Units',
-      barcode: `${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-      locations: [{ zone: 'Main Storage', bin: newLocation, qty }],
-    };
-
-    setProducts([newProd, ...products]);
+      onHand: newQty,
+      minThreshold: newMin,
+    });
     setIsAddModalOpen(false);
     setNewSku('');
     setNewName('');
     setNewCost('');
     setNewPrice('');
     setNewQty('');
+    showToast(`✓ SKU ${created.sku} added and persisted to localStorage!`);
+  };
+
+  const openEditModal = (product) => {
+    setEditingProduct(product);
+    setEditName(product.name);
+    setEditCategory(product.category);
+    setEditCost(product.unitCost);
+    setEditPrice(product.unitPrice);
+    setEditLocation(product.primaryLocation);
+    setEditMin(product.minThreshold);
+    setEditOnHand(product.onHand);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    editProduct(editingProduct.id, {
+      name: editName,
+      category: editCategory,
+      unitCost: parseFloat(editCost) || 0,
+      unitPrice: parseFloat(editPrice) || 0,
+      primaryLocation: editLocation,
+      minThreshold: parseInt(editMin, 10) || 10,
+      onHand: parseInt(editOnHand, 10) || 0,
+    });
+
+    showToast(`✓ SKU ${editingProduct.sku} updated and saved!`);
+    setEditingProduct(null);
+  };
+
+  const handleDeleteProduct = (product) => {
+    if (window.confirm(`Are you sure you want to delete SKU ${product.sku} (${product.name}) from inventory?`)) {
+      deleteProduct(product.id);
+      showToast(`🗑 SKU ${product.sku} removed from inventory.`);
+    }
   };
 
   return (
     <div style={{ padding: 'var(--ss-space-6)', maxWidth: '1680px', margin: '0 auto', width: '100%' }}>
+      {/* Toast Notification */}
+      {actionToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 100,
+            background: 'var(--ss-bg-surface-elevated)',
+            border: '1px solid var(--ss-primary)',
+            borderRadius: 'var(--ss-radius-md)',
+            padding: '1rem 1.25rem',
+            boxShadow: 'var(--ss-shadow-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            color: 'var(--ss-text-primary)',
+          }}
+        >
+          <span style={{ color: 'var(--ss-primary)', fontSize: '1.25rem' }}>✓</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--ss-primary)' }}>
+              Catalog Operation Complete
+            </div>
+            <div style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)', marginTop: '2px' }}>
+              {actionToast}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -83,9 +154,10 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
               Products Master Catalog
             </h1>
             <span className="ss-badge ss-badge-info">INVENTORY MASTER</span>
+            <span className="ss-badge ss-badge-success">● FULL CRUD ENABLED</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
-            Central SKU registry with multi-bin tracking, unit economics, and safety reorder thresholds.
+            Central SKU registry with live multi-bin tracking, unit economics, edit/delete actions, and localStorage persistence.
           </p>
         </div>
 
@@ -116,7 +188,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL CATALOG VALUE</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
-            ${products.reduce((acc, p) => acc + p.onHand * p.unitCost, 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            ${products.reduce((acc, p) => acc + (p.onHand || 0) * (p.unitCost || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
           </div>
         </div>
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
@@ -128,7 +200,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>TOTAL ON-HAND UNITS</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>
-            {products.reduce((acc, p) => acc + p.onHand, 0).toLocaleString()} Units
+            {products.reduce((acc, p) => acc + (p.onHand || 0), 0).toLocaleString()} Units
           </div>
         </div>
       </div>
@@ -199,7 +271,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>AVAILABLE</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>UNIT COST</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>QUICK ACTIONS</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -280,23 +352,26 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                       {!isLow && !isOut && <span className="ss-badge ss-badge-success">In Stock</span>}
                     </td>
 
+                    {/* CRUD ACTION BUTTONS: Edit, Delete, Quick Moves */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
                         <button
                           type="button"
                           className="ss-btn ss-btn-secondary"
+                          onClick={() => openEditModal(p)}
                           style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
-                          title="Receive inbound shipment"
+                          title="Edit Product Details"
                         >
-                          + Receive
+                          ✏️ Edit
                         </button>
                         <button
                           type="button"
-                          className="ss-btn ss-btn-ghost"
+                          className="ss-btn ss-btn-danger"
+                          onClick={() => handleDeleteProduct(p)}
                           style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
-                          title="Relocate to another zone"
+                          title="Delete Product from Catalog"
                         >
-                          ⇄ Move
+                          🗑
                         </button>
                       </div>
                     </td>
@@ -352,7 +427,7 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
               </button>
             </div>
 
-            <form onSubmit={handleAddProduct} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            <form onSubmit={handleCreateProduct} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
@@ -484,6 +559,164 @@ export const ProductsPage = ({ onQuickReceive, onQuickTransfer }) => {
                 </button>
                 <button type="submit" className="ss-btn ss-btn-primary">
                   Save Product to Catalog
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit SKU Modal */}
+      {editingProduct && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '560px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Edit Product SKU: {editingProduct.sku}
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Modify master information, safety thresholds, or storage location.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setEditingProduct(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Product Name
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Primary Location
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editLocation}
+                    onChange={(e) => setEditLocation(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Unit Cost ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="ss-input"
+                    value={editCost}
+                    onChange={(e) => setEditCost(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Unit Price ($)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="ss-input"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    On Hand Stock
+                  </label>
+                  <input
+                    type="number"
+                    className="ss-input"
+                    value={editOnHand}
+                    onChange={(e) => setEditOnHand(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Min Safety Level
+                  </label>
+                  <input
+                    type="number"
+                    className="ss-input"
+                    value={editMin}
+                    onChange={(e) => setEditMin(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setEditingProduct(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary">
+                  Save Changes
                 </button>
               </div>
             </form>

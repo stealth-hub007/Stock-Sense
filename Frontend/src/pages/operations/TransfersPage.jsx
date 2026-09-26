@@ -1,20 +1,33 @@
 import React, { useState } from 'react';
-import { INITIAL_TRANSFERS_QUEUE, INITIAL_PRODUCTS } from '../../services/mockData';
+import { useInventory } from '../../context/InventoryContext';
 
 export const TransfersPage = () => {
-  const [transfers, setTransfers] = useState(INITIAL_TRANSFERS_QUEUE);
+  const { transfers, products, addTransfer, editTransfer, deleteTransfer, executeTransfer } = useInventory();
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingTransfer, setEditingTransfer] = useState(null);
   const [successToast, setSuccessToast] = useState(null);
 
   // New transfer form
-  const [newSku, setNewSku] = useState(INITIAL_PRODUCTS[0].sku);
+  const [newSku, setNewSku] = useState(products[0]?.sku || 'MTR-9002');
   const [newQty, setNewQty] = useState(15);
   const [newFrom, setNewFrom] = useState('Rack A-02');
   const [newTo, setNewTo] = useState('Zone C (Rapid Dispatch)');
   const [newReason, setNewReason] = useState('Fulfillment Staging');
   const [newPriority, setNewPriority] = useState('HIGH');
+
+  // Edit transfer form
+  const [editFrom, setEditFrom] = useState('');
+  const [editTo, setEditTo] = useState('');
+  const [editQty, setEditQty] = useState(10);
+  const [editReason, setEditReason] = useState('');
+  const [editPriority, setEditPriority] = useState('HIGH');
+
+  const showToast = (msg) => {
+    setSuccessToast(msg);
+    setTimeout(() => setSuccessToast(null), 5000);
+  };
 
   const filteredTransfers = transfers.filter((t) => {
     const matchesSearch =
@@ -28,44 +41,54 @@ export const TransfersPage = () => {
   });
 
   const handleCompleteTransfer = (transferNo, sku, qty, toLoc) => {
-    setTransfers((prev) =>
-      prev.map((t) =>
-        t.transferNo === transferNo
-          ? {
-              ...t,
-              status: 'COMPLETED',
-              completedAt: 'Just now',
-            }
-          : t
-      )
-    );
-
-    setSuccessToast(`Transfer ${transferNo} completed! ${qty} units of ${sku} moved to ${toLoc}.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    executeTransfer(transferNo, 'Sarah Chen (Manager)');
+    showToast(`⇄ Transfer ${transferNo} completed! ${qty} units of ${sku} moved to ${toLoc}.`);
   };
 
   const handleScheduleTransfer = (e) => {
     e.preventDefault();
-    const prod = INITIAL_PRODUCTS.find((p) => p.sku === newSku) || INITIAL_PRODUCTS[0];
-
-    const newTransferItem = {
-      id: `tr-${Date.now().toString().slice(-4)}`,
-      transferNo: `TR-${Math.floor(7000 + Math.random() * 2000)}`,
-      sku: prod.sku,
-      productName: prod.name,
-      qty: parseInt(newQty, 10) || 10,
+    const created = addTransfer({
+      sku: newSku,
+      qty: newQty,
       fromLocation: newFrom,
       toLocation: newTo,
       priority: newPriority,
       reason: newReason,
-      status: 'SCHEDULED',
-      requestedBy: 'Sarah Chen (Manager)',
-    };
-
-    setTransfers([newTransferItem, ...transfers]);
+    });
     setIsModalOpen(false);
-    setSuccessToast(`Transfer ${newTransferItem.transferNo} scheduled from ${newFrom} → ${newTo}.`);
-    setTimeout(() => setSuccessToast(null), 5000);
+    showToast(`⇄ Transfer ${created.transferNo} scheduled & saved to localStorage!`);
+  };
+
+  const openEditModal = (t) => {
+    setEditingTransfer(t);
+    setEditFrom(t.fromLocation);
+    setEditTo(t.toLocation);
+    setEditQty(t.qty);
+    setEditReason(t.reason);
+    setEditPriority(t.priority);
+  };
+
+  const handleSaveEdit = (e) => {
+    e.preventDefault();
+    if (!editingTransfer) return;
+
+    editTransfer(editingTransfer.id, {
+      fromLocation: editFrom,
+      toLocation: editTo,
+      qty: parseInt(editQty, 10) || editingTransfer.qty,
+      reason: editReason,
+      priority: editPriority,
+    });
+
+    showToast(`✓ Transfer ${editingTransfer.transferNo} updated!`);
+    setEditingTransfer(null);
+  };
+
+  const handleDeleteTransfer = (t) => {
+    if (window.confirm(`Delete internal transfer ${t.transferNo}?`)) {
+      deleteTransfer(t.id);
+      showToast(`🗑 Transfer ${t.transferNo} deleted.`);
+    }
   };
 
   return (
@@ -118,6 +141,7 @@ export const TransfersPage = () => {
               Internal Location Transfers
             </h1>
             <span className="ss-badge ss-badge-info">LIFECYCLE: STAGE 2 (RELOCATION)</span>
+            <span className="ss-badge ss-badge-success">● FULL CRUD</span>
           </div>
           <p style={{ color: 'var(--ss-text-secondary)', fontSize: 'var(--ss-text-sm)' }}>
             Move pallets and parts between receiving bays, high-bay storage racks, and rapid dispatch staging areas.
@@ -156,15 +180,15 @@ export const TransfersPage = () => {
           </div>
         </div>
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
-          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>COMPLETED TODAY</div>
+          <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>COMPLETED THIS SHIFT</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-success-text)' }}>
             {transfers.filter((t) => t.status === 'COMPLETED').length} Finished
           </div>
         </div>
         <div className="ss-card" style={{ padding: 'var(--ss-space-4)' }}>
           <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--ss-text-muted)' }}>UNITS IN RELOCATION</div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-text-primary)' }}>
-            {transfers.reduce((acc, t) => acc + t.qty, 0)} Units
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--ss-font-mono)', color: 'var(--ss-primary)' }}>
+            {transfers.reduce((acc, t) => acc + (t.qty || 0), 0)} Units
           </div>
         </div>
       </div>
@@ -218,7 +242,7 @@ export const TransfersPage = () => {
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>QTY MOVED</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>PRIORITY & REASON</th>
                 <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600 }}>STATUS</th>
-                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>ACTION</th>
+                <th style={{ padding: '0.75rem 1rem', color: 'var(--ss-text-muted)', fontWeight: 600, textAlign: 'right' }}>CRUD ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -295,21 +319,39 @@ export const TransfersPage = () => {
                       )}
                     </td>
 
+                    {/* CRUD ACTIONS */}
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>
-                      {isScheduled ? (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.35rem' }}>
+                        {isScheduled ? (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-secondary"
+                            onClick={() => handleCompleteTransfer(t.transferNo, t.sku, t.qty, t.toLocation)}
+                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem', borderColor: '#8b5cf6', color: '#c084fc' }}
+                          >
+                            Confirm Move →
+                          </button>
+                        ) : null}
+
                         <button
                           type="button"
                           className="ss-btn ss-btn-secondary"
-                          onClick={() => handleCompleteTransfer(t.transferNo, t.sku, t.qty, t.toLocation)}
-                          style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', borderColor: '#8b5cf6', color: '#c084fc' }}
+                          onClick={() => openEditModal(t)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                          title="Edit Location Transfer"
                         >
-                          Confirm Move →
+                          ✏️ Edit
                         </button>
-                      ) : (
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--ss-text-muted)' }}>
-                          {t.completedAt}
-                        </span>
-                      )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-danger"
+                          onClick={() => handleDeleteTransfer(t)}
+                          style={{ fontSize: '0.6875rem', padding: '0.25rem 0.45rem' }}
+                          title="Delete Transfer"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -373,7 +415,7 @@ export const TransfersPage = () => {
                   value={newSku}
                   onChange={(e) => setNewSku(e.target.value)}
                 >
-                  {INITIAL_PRODUCTS.map((p) => (
+                  {products.map((p) => (
                     <option key={p.sku} value={p.sku}>
                       {p.sku} — {p.name} ({p.onHand} on hand)
                     </option>
@@ -466,6 +508,138 @@ export const TransfersPage = () => {
                   style={{ background: '#8b5cf6', borderColor: '#7c3aed' }}
                 >
                   Schedule Location Move
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Transfer Modal */}
+      {editingTransfer && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(11, 15, 23, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '1rem',
+          }}
+        >
+          <div
+            className="ss-card"
+            style={{
+              maxWidth: '520px',
+              width: '100%',
+              backgroundColor: 'var(--ss-bg-surface)',
+              border: '1px solid var(--ss-border)',
+              boxShadow: 'var(--ss-shadow-lg)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--ss-text-primary)' }}>
+                  Edit Transfer: {editingTransfer.transferNo}
+                </h3>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--ss-text-secondary)' }}>
+                  Modify locations, priority, or relocation volume.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setEditingTransfer(null)}
+                style={{ fontSize: '1.25rem', padding: '0.25rem 0.5rem' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Source Bin
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editFrom}
+                    onChange={(e) => setEditFrom(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Destination Bin
+                  </label>
+                  <input
+                    type="text"
+                    className="ss-input"
+                    value={editTo}
+                    onChange={(e) => setEditTo(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    className="ss-input"
+                    value={editQty}
+                    onChange={(e) => setEditQty(e.target.value)}
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                    Priority
+                  </label>
+                  <select
+                    className="ss-select"
+                    value={editPriority}
+                    onChange={(e) => setEditPriority(e.target.value)}
+                  >
+                    <option value="NORMAL">Normal</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: 'var(--ss-text-secondary)', marginBottom: '0.25rem' }}>
+                  Reason Note
+                </label>
+                <input
+                  type="text"
+                  className="ss-input"
+                  value={editReason}
+                  onChange={(e) => setEditReason(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-secondary"
+                  onClick={() => setEditingTransfer(null)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="ss-btn ss-btn-primary" style={{ background: '#8b5cf6', borderColor: '#7c3aed' }}>
+                  Save Transfer Changes
                 </button>
               </div>
             </form>
